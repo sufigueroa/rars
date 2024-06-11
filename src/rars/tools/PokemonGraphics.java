@@ -26,7 +26,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private static String displayPanelTitle, keyboardPanelTitle;
     private static char VT_FILL = ' ';  // fill character for virtual terminal (random access mode)
 
-    public static Dimension preferredTextAreaDimension = new Dimension(400, 200);
+    public static Dimension preferredTextAreaDimension = new Dimension(1000, 250);
     private static Insets textAreaInsets = new Insets(4, 4, 4, 4);
 
     public static int RECEIVER_CONTROL;    // keyboard Ready in low-order bit
@@ -61,7 +61,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JTextArea keyEventAccepter;
     private JButton fontButton;
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-
 
     public static final int EXTERNAL_INTERRUPT_KEYBOARD = 0x00000040;
     public static final int EXTERNAL_INTERRUPT_DISPLAY = 0x00000080;
@@ -108,7 +107,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         TRANSMITTER_CONTROL = Memory.memoryMapBaseAddress + 8; //0xffff0008; // display Ready in low-order bit
         TRANSMITTER_DATA = Memory.memoryMapBaseAddress + 12; //0xffff000c; // display character in low-order byte
         displayPanelTitle = "DISPLAY: Store to Transmitter Data " + Binary.intToHexString(TRANSMITTER_DATA);
-        keyboardPanelTitle = "KEYBOARD: Characters typed here are stored to Receiver Data " + Binary.intToHexString(RECEIVER_DATA);
+        keyboardPanelTitle = "Combat Log";
     }
 
 
@@ -148,16 +147,9 @@ public class PokemonGraphics extends AbstractToolAndApplication {
      * @return the GUI component containing these two areas
      */
     protected JComponent buildMainDisplayArea() {
-        // Changed arrangement of the display and keyboard panels from GridLayout(2,1)
-        // to BorderLayout to hold a JSplitPane containing both panels.  This permits user
-        // to apportion the relative sizes of the display and keyboard panels within
-        // the overall frame.  Will be convenient for use with the new random-access
-        // display positioning feature.  Previously, both the display and the keyboard
-        // text areas were equal in size and there was no way for the user to change that.
-        // DPS 17-July-2014
         keyboardAndDisplay = new JPanel(new BorderLayout());
-        JSplitPane both = new JSplitPane(JSplitPane.VERTICAL_SPLIT, buildDisplay(), buildKeyboard());
-        both.setResizeWeight(0.5);
+        JSplitPane both = new JSplitPane(JSplitPane.VERTICAL_SPLIT, buildDisplay(), buildInfo());
+        both.setResizeWeight(0.3);
         keyboardAndDisplay.add(both);
         return keyboardAndDisplay;
     }
@@ -329,15 +321,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         String stringCaretPosition;
         // display position as stream or 2D depending on random access
         if (displayRandomAccessMode) {
-            //             if ( caretPosition == rows*(columns+1)+1) {
-            //                stringCaretPosition = "(0,0)";
-            //             }
-            //             else if ( (caretPosition+1) % (columns+1) == 0) {
-            //                stringCaretPosition = "(0,"+((caretPosition/(columns+1))+1)+")";
-            //             }
-            //             else {
-            //                stringCaretPosition = "("+(caretPosition%(columns+1))+","+(caretPosition/(columns+1))+")";
-            //             }
             if (((caretPosition + 1) % (columns + 1) != 0)) {
                 stringCaretPosition = "(" + (caretPosition % (columns + 1)) + "," + (caretPosition / (columns + 1)) + ")";
             } else if (((caretPosition + 1) % (columns + 1) == 0) && ((caretPosition / (columns + 1)) + 1 == rows)) {
@@ -474,28 +457,20 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
         displayPanel.add(displayScrollPane);
         displayOptions = new JPanel();
-
-        //font button to display font
-        fontButton = new JButton("Font");
-        fontButton.setToolTipText("Select the font for the display panel");
-        fontButton.addActionListener(new FontChanger());
-        displayOptions.add(fontButton);
-        displayPanel.add(displayOptions, BorderLayout.SOUTH);
         return displayPanel;
     }
 
 
     //////////////////////////////////////////////////////////////////////////////////////
     // UI components and layout for lower part of GUI, where simulated keyboard is located.
-    private JComponent buildKeyboard() {
+    private JComponent buildInfo() {
         keyboardPanel = new JPanel(new BorderLayout());
-        keyEventAccepter = new JTextArea();
-        keyEventAccepter.setEditable(true);
+        keyEventAccepter = new JTextArea("Se inicia la pelea\n");
+        keyEventAccepter.setEditable(false);
         keyEventAccepter.setFont(defaultFont);
         keyEventAccepter.setMargin(textAreaInsets);
         keyAccepterScrollPane = new JScrollPane(keyEventAccepter);
-        keyAccepterScrollPane.setPreferredSize(preferredTextAreaDimension);
-        keyEventAccepter.addKeyListener(new KeyboardKeyListener());
+        keyAccepterScrollPane.setPreferredSize(new Dimension(1000, 100));
         keyboardPanel.add(keyAccepterScrollPane);
         TitledBorder tb = new TitledBorder(keyboardPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
@@ -608,88 +583,5 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         public void keyReleased(KeyEvent e) {
         }
     }
-
-    /**
-     * Font dialog for the display panel
-     * Almost all of the code is used from the SettingsHighlightingAction
-     * class.
-     */
-
-    private class FontSettingDialog extends AbstractFontSettingDialog {
-        private boolean resultOK;
-
-        public FontSettingDialog(Frame owner, String title, Font currentFont) {
-            super(owner, title, true, currentFont);
-        }
-
-        private Font showDialog() {
-            resultOK = true;
-            // Because dialog is modal, this blocks until user terminates the dialog.
-            this.setVisible(true);
-            return resultOK ? getFont() : null;
-        }
-
-        protected void closeDialog() {
-            this.setVisible(false);
-            // Update display text dimensions based on current font and size. DPS 22-July-2014
-            updateDisplayBorder.componentResized(null);
-        }
-
-        private void performCancel() {
-            resultOK = false;
-        }
-
-        // Control buttons for the dialog.
-        protected Component buildControlPanel() {
-            Box controlPanel = Box.createHorizontalBox();
-            JButton okButton = new JButton("OK");
-            okButton.addActionListener(
-                    new ActionListener() {
-                        public void actionPerformed(ActionEvent e) {
-                            apply(getFont());
-                            closeDialog();
-                        }
-                    });
-            JButton cancelButton = new JButton("Cancel");
-            cancelButton.addActionListener(
-                    new ActionListener() {
-                        public void actionPerformed(ActionEvent e) {
-                            performCancel();
-                            closeDialog();
-                        }
-                    });
-            JButton resetButton = new JButton("Reset");
-            resetButton.addActionListener(
-                    new ActionListener() {
-                        public void actionPerformed(ActionEvent e) {
-                            reset();
-                        }
-                    });
-            controlPanel.add(Box.createHorizontalGlue());
-            controlPanel.add(okButton);
-            controlPanel.add(Box.createHorizontalGlue());
-            controlPanel.add(cancelButton);
-            controlPanel.add(Box.createHorizontalGlue());
-            controlPanel.add(resetButton);
-            controlPanel.add(Box.createHorizontalGlue());
-            return controlPanel;
-        }
-
-        // Change the font for the keyboard and display
-        protected void apply(Font font) {
-            display.setFont(font);
-            keyEventAccepter.setFont(font);
-        }
-
-    }
-
-    private class FontChanger implements ActionListener {
-        public void actionPerformed(ActionEvent e) {
-            JButton button = (JButton) e.getSource();
-            FontSettingDialog fontDialog = new FontSettingDialog(null, "Select Text Font", display.getFont());
-            Font newFont = fontDialog.showDialog();
-        }
-    }
-
 
 }

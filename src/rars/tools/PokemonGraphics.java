@@ -25,21 +25,16 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     private static String version = "Version 1.0";
     private static String heading = "Pokemon TM";
-    private static String displayPanelTitle, keyboardPanelTitle;
+    private static String displayPanelTitle, infoPanelTitle;
     private static char VT_FILL = ' ';  // fill character for virtual terminal (random access mode)
 
     public static Dimension preferredTextAreaDimension = new Dimension(1000, 250);
     private static Insets textAreaInsets = new Insets(4, 4, 4, 4);
 
-    public static int POKEMON_1_STATUS;    // keyboard Ready in low-order bit
-    public static int POKEMON_1_COMMAND;       // keyboard character in low-order byte
-    public static int POKEMON_2_STATUS; // display Ready in low-order bit
-    public static int POKEMON_2_COMMAND;    // display character in low-order byte
-    // These are used to track instruction counts to simulate driver delay of Transmitter Data
-    private boolean countingInstructions;
-    private int instructionCount;
-    private int transmitDelayInstructionCountLimit;
-    private int currentDelayInstructionLimit;
+    public static int POKEMON_1_STATUS;     // Registro de estado del primer pokemon
+    public static int POKEMON_1_COMMAND;    // Registro de comandos del primer pokemon
+    public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
+    public static int POKEMON_2_COMMAND;    // Registro de comandos del segundo pokemon
 
     // Should the transmitted character be displayed before the transmitter delay period?
     // If not, hold onto it and print at the end of delay period.
@@ -59,9 +54,9 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JScrollPane displayScrollPane;
     private JTextArea display;
     private JPanel displayPanel, displayOptions;
-    private JPanel keyboardPanel;
+    private JPanel logPanel;
     private JScrollPane keyAccepterScrollPane;
-    private JTextArea keyEventAccepter;
+    private JTextArea logDisplay;
     private JButton fontButton;
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
@@ -110,7 +105,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         POKEMON_2_STATUS = Memory.memoryMapBaseAddress + 8; //0xffff0008; // display Ready in low-order bit
         POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 12; //0xffff000c; // display character in low-order byte
         displayPanelTitle = "DISPLAY: Store to Transmitter Data " + Binary.intToHexString(POKEMON_2_COMMAND);
-        keyboardPanelTitle = "Combat Log";
+        infoPanelTitle = "Combat Log";
     }
 
 
@@ -161,23 +156,15 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             getCommand(intCommand, 1);
-            this.countingInstructions = true;
-            this.instructionCount = 0;
         } else if (notice.getAddress() == POKEMON_2_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             getCommand(intCommand, 2);
-            this.countingInstructions = true;
-            this.instructionCount = 0;
         } else if (notice.getAddress() == POKEMON_1_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
             intStatus = notice.getValue();
             getStatus(intStatus, 1);
-            this.countingInstructions = true;
-            this.instructionCount = 0;
         } else if (notice.getAddress() == POKEMON_2_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
             intStatus = notice.getValue();
             getStatus(intStatus, 2);
-            this.countingInstructions = true;
-            this.instructionCount = 0;
         }
     }
 
@@ -191,15 +178,15 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private void getStatus(int intStatus, int intPokemon) {
         int status = (int) (intStatus & 0x000000FF);
         if (status == 1){
-            keyEventAccepter.append("Oh no! El pokemon " + intPokemon + " esta envenando!\n");
+            logDisplay.append("Oh no! El pokemon " + intPokemon + " esta envenando!\n");
         } else if (status == 2){
-            keyEventAccepter.append("Oh no! El pokemon " + intPokemon + " esta dormido!\n");
+            logDisplay.append("Oh no! El pokemon " + intPokemon + " esta dormido!\n");
         }
     }
 
     @Override
     protected void initializePostGUI() {
-        keyEventAccepter.requestFocusInWindow();
+        logDisplay.requestFocusInWindow();
     }
 
 
@@ -210,10 +197,10 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     protected void reset() {
         displayRandomAccessMode = false;
         initializeDisplay(displayRandomAccessMode);
-        keyEventAccepter.setText("");
+        logDisplay.setText("Se ha iniciado una nueva batalla pokemon\n");
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
         displayPanel.repaint();
-        keyEventAccepter.requestFocusInWindow();
+        logDisplay.requestFocusInWindow();
         updateMMIOControl(POKEMON_2_STATUS, readyBitSet(POKEMON_2_STATUS));
     }
 
@@ -396,18 +383,18 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     //////////////////////////////////////////////////////////////////////////////////////
     // UI components and layout for lower part of GUI, where simulated keyboard is located.
     private JComponent buildInfo() {
-        keyboardPanel = new JPanel(new BorderLayout());
-        keyEventAccepter = new JTextArea("Se inicia la pelea\n");
-        keyEventAccepter.setEditable(false);
-        keyEventAccepter.setFont(defaultFont);
-        keyEventAccepter.setMargin(textAreaInsets);
-        keyAccepterScrollPane = new JScrollPane(keyEventAccepter);
+        logPanel = new JPanel(new BorderLayout());
+        logDisplay = new JTextArea("Se ha iniciado una nueva batalla pokemon\n");
+        logDisplay.setEditable(false);
+        logDisplay.setFont(defaultFont);
+        logDisplay.setMargin(textAreaInsets);
+        keyAccepterScrollPane = new JScrollPane(logDisplay);
         keyAccepterScrollPane.setPreferredSize(new Dimension(1000, 100));
-        keyboardPanel.add(keyAccepterScrollPane);
-        TitledBorder tb = new TitledBorder(keyboardPanelTitle);
+        logPanel.add(keyAccepterScrollPane);
+        TitledBorder tb = new TitledBorder(infoPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
-        keyboardPanel.setBorder(tb);
-        return keyboardPanel;
+        logPanel.setBorder(tb);
+        return logPanel;
     }
 
     ////////////////////////////////////////////////////////////////////

@@ -62,6 +62,10 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JButton fontButton;
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
+    private int poke_def_x = 165;
+    private int poke_def_y = 35;
+    private int poke_atk_x = 30;
+    private int poke_atk_y = 95;
 
     /**
      * Simple constructor, likely used to run a stand-alone keyboard/display simulator.
@@ -294,11 +298,38 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         return help;
     }
 
+    private void mergeImages(){
+        try {
+            String path = "./src/images/pokemon/";
+            BufferedImage background = ImageIO.read(new File(path, "grass_background.png"));
+            BufferedImage pokemon_defensor = ImageIO.read(new File(path, "front/003.png"));
+            BufferedImage pokemon_atacante = ImageIO.read(new File(path, "back/005.png"));
+
+            // create the new image, canvas size is the max. of both image sizes
+            int w = background.getWidth();
+            int h = background.getHeight();
+            BufferedImage combined = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+
+            // paint both images, preserving the alpha channels
+            Graphics g = combined.getGraphics();
+            g.drawImage(background, 0, 0, null);
+            g.drawImage(pokemon_defensor, poke_def_x, poke_def_y, null);
+            g.drawImage(pokemon_atacante, poke_atk_x, poke_atk_y, null);
+            g.dispose();
+
+            // Save as new image
+            ImageIO.write(combined, "PNG", new File(path, "temp.png"));
+
+        } catch (IOException ex) {
+            // handle exception...
+        }
+    }
 
     private JPanel addImage(JPanel displayPanel){
         try {
+            mergeImages();
             // BufferedImage image = ImageIO.read(new File("./src/images/dratini.png"));
-            BufferedImage image = ImageIO.read(new File("./src/images/grass_background.png"));
+            BufferedImage image = ImageIO.read(new File("./src/images/pokemon/temp.png"));
             JLabel picLabel = new JLabel(new ImageIcon(image));
             displayPanel.add(picLabel);
         } catch (IOException ex) {

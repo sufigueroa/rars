@@ -36,14 +36,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     public static Dimension preferredTextAreaDimension = new Dimension(1000, 250);
     private static Insets textAreaInsets = new Insets(4, 4, 4, 4);
 
-    public static int POKEMON_1_STATUS;     // Registro de estado del primer pokemon
-    public static int POKEMON_1_COMMAND;    // Registro de comandos del primer pokemon
-    public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
-    public static int POKEMON_2_COMMAND;    // Registro de comandos del segundo pokemon
-
-    private int intCommand;                 // Numero del comando a ejecutar
-    private int intStatus;                  // Numero del estado
-
     // Whether or not display position is sequential (JTextArea append)
     // or random access (row, column).  Supports new random access feature. DPS 17-July-2014
     private boolean displayRandomAccessMode = false;
@@ -62,6 +54,18 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JButton fontButton;
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
+    public static int POKEMON_1_STATUS;     // Registro de estado del primer pokemon
+    public static int POKEMON_1_COMMAND;    // Registro de comandos del primer pokemon
+    public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
+    public static int POKEMON_2_COMMAND;    // Registro de comandos del segundo pokemon
+
+    private int idPokeAtk = 1;
+    private int idPokeDef = 1;
+
+    private int intCommand;                 // Numero del comando a ejecutar
+    private int intStatus;                  // Numero del estado
+    
+    String pathPokemons = "./src/images/pokemon/";
     private int poke_def_x = 165;
     private int poke_def_y = 35;
     private int poke_atk_x = 30;
@@ -165,21 +169,24 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         int command = (int) (intCommand & 0x000000FF);
         if (command == 1){
             logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
-            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
         } else if (command == 2){
             logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
-            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
         } else if (command == 3){
             logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
-            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
         } else if (command == 4){
             logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
-            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
         }
     }
 
     private void getStatus(int intStatus, int intPokemon) {
         int status = (int) (intStatus & 0x000000FF);
+        int id = (int) (intStatus & 0x0000FF00) >> 8;
+        System.out.println("Pokemon " + intPokemon + " id: " + id);
+        if (id > 0 && intPokemon == 1){
+            idPokeAtk = id;
+        } else if (id > 0 && intPokemon == 2){
+            idPokeDef = id;
+        }
         if (status == 1){
             logDisplay.append("Oh no! El pokemon " + intPokemon + " esta envenando!\n");
         } else if (status == 2){
@@ -201,39 +208,12 @@ public class PokemonGraphics extends AbstractToolAndApplication {
      */
     protected void reset() {
         displayRandomAccessMode = false;
-        initializeDisplay(displayRandomAccessMode);
         logDisplay.setText("Se ha iniciado una nueva batalla pokemon\n");
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
         displayPanel.repaint();
+        buildDisplay();
         logDisplay.requestFocusInWindow();
     }
-
-
-    // The display JTextArea (top half) is initialized either to the empty
-    // string, or to a string filled with lines of spaces. It will do the
-    // latter only if the program has sent the BELL character (Ascii 7) to
-    // the transmitter.  This sets the caret (cursor) to a specific (x,y) position
-    // on a text-based virtual display.  The lines of spaces is necessary because
-    // the caret can only be placed at a position within the current text string.
-    private void initializeDisplay(boolean randomAccess) {
-        String initialText = "";
-        if (randomAccess) {
-            Dimension textDimensions = getDisplayPanelTextDimensions();
-            columns = (int) textDimensions.getWidth();
-            rows = (int) textDimensions.getHeight();
-            char[] charArray = new char[columns];
-            Arrays.fill(charArray, VT_FILL);
-            String row = new String(charArray);
-            StringBuffer str = new StringBuffer(row);
-            for (int i = 1; i < rows; i++) {
-                str.append("\n" + row);
-            }
-            initialText = str.toString();
-        }
-        display.setText(initialText);
-        display.setCaretPosition(0);
-    }
-
 
     // Calculate text display capacity of display window. Text dimensions are based
     // on pixel dimensions of window divided by font size properties.
@@ -299,11 +279,13 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private void mergeImages(){
+        System.out.println("Merge de imagen!" + idPokeAtk + idPokeDef);
         try {
-            String path = "./src/images/pokemon/";
-            BufferedImage background = ImageIO.read(new File(path, "grass_background.png"));
-            BufferedImage pokemon_defensor = ImageIO.read(new File(path, "front/003.png"));
-            BufferedImage pokemon_atacante = ImageIO.read(new File(path, "back/005.png"));
+            String idAtk = "front/" + String.format("%03d", idPokeAtk) + ".png";
+            String idDef = "back/" + String.format("%03d", idPokeDef) + ".png";
+            BufferedImage background = ImageIO.read(new File(pathPokemons, "grass_background.png"));
+            BufferedImage pokemon_defensor = ImageIO.read(new File(pathPokemons, idAtk));
+            BufferedImage pokemon_atacante = ImageIO.read(new File(pathPokemons, idDef));
 
             // create the new image, canvas size is the max. of both image sizes
             int w = background.getWidth();
@@ -318,7 +300,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             g.dispose();
 
             // Save as new image
-            ImageIO.write(combined, "PNG", new File(path, "temp.png"));
+            ImageIO.write(combined, "PNG", new File(pathPokemons, "temp.png"));
 
         } catch (IOException ex) {
             // handle exception...
@@ -328,8 +310,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JPanel addImage(JPanel displayPanel){
         try {
             mergeImages();
-            // BufferedImage image = ImageIO.read(new File("./src/images/dratini.png"));
-            BufferedImage image = ImageIO.read(new File("./src/images/pokemon/temp.png"));
+            BufferedImage image = ImageIO.read(new File(pathPokemons, "temp.png"));
             JLabel picLabel = new JLabel(new ImageIcon(image));
             displayPanel.add(picLabel);
         } catch (IOException ex) {
@@ -346,30 +327,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         displayPanel = addImage(displayPanel);
         return displayPanel;
     }
-
-    private JComponent buildDisplayoriginal() {
-        displayPanel = new JPanel(new BorderLayout());
-        TitledBorder tb = new TitledBorder(displayPanelTitle);
-        tb.setTitleJustification(TitledBorder.CENTER);
-        displayPanel.setBorder(tb);
-        display = new JTextArea();
-        display.setFont(defaultFont);
-        display.setEditable(false);
-        display.setMargin(textAreaInsets);
-        updateDisplayBorder = new DisplayResizeAdapter();
-        // 	To update display of size in the Display text area when window or font size changes.
-        display.addComponentListener(updateDisplayBorder);
-        DefaultCaret caret = (DefaultCaret) display.getCaret();
-        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-        // end added autoscrolling
-
-        displayScrollPane = new JScrollPane(display);
-        displayScrollPane.setPreferredSize(preferredTextAreaDimension);
-
-        displayPanel.add(displayScrollPane);
-        return displayPanel;
-    }
-
 
     //////////////////////////////////////////////////////////////////////////////////////
     // UI components and layout for lower part of GUI, where simulated keyboard is located.

@@ -23,7 +23,7 @@ import java.io.*;
 
 public class PokemonGraphics extends AbstractToolAndApplication {
 
-    private static String version = "Version 1.0";
+    private static String version = "Version 1.0 (Susana Figueroa)";
     private static String heading = "Pokemon TM";
     private static String displayPanelTitle, infoPanelTitle;
     private static char VT_FILL = ' ';  // fill character for virtual terminal (random access mode)
@@ -36,11 +36,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
     public static int POKEMON_2_COMMAND;    // Registro de comandos del segundo pokemon
 
-    // Should the transmitted character be displayed before the transmitter delay period?
-    // If not, hold onto it and print at the end of delay period.
-    private int intCommand;
-    private int intStatus;
-    private boolean displayAfterDelay = true;
+    private int intCommand;                 // Numero del comando a ejecutar
+    private int intStatus;                  // Numero del estado
 
     // Whether or not display position is sequential (JTextArea append)
     // or random access (row, column).  Supports new random access feature. DPS 17-July-2014
@@ -55,13 +52,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JTextArea display;
     private JPanel displayPanel, displayOptions;
     private JPanel logPanel;
-    private JScrollPane keyAccepterScrollPane;
+    private JScrollPane logAccepterScrollPane;
     private JTextArea logDisplay;
     private JButton fontButton;
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
-    public static final int EXTERNAL_INTERRUPT_KEYBOARD = 0x00000040;
-    public static final int EXTERNAL_INTERRUPT_DISPLAY = 0x00000080;
 
     /**
      * Simple constructor, likely used to run a stand-alone keyboard/display simulator.
@@ -96,33 +91,23 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         return "Pokemon TM";
     }
 
-    // Set the MMIO addresses.  Prior to MARS 3.7 these were final because
-    // address space was final as well.  Now we will get MMIO base address
-    // each time to reflect possible change in memory configuration. DPS 6-Aug-09
+    // Se definen los valores de los registros
     protected void initializePreGUI() {
         POKEMON_1_STATUS = Memory.memoryMapBaseAddress; //0xffff0000; // keyboard Ready in low-order bit
         POKEMON_1_COMMAND = Memory.memoryMapBaseAddress + 4; //0xffff0004; // keyboard character in low-order byte
         POKEMON_2_STATUS = Memory.memoryMapBaseAddress + 8; //0xffff0008; // display Ready in low-order bit
         POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 12; //0xffff000c; // display character in low-order byte
-        displayPanelTitle = "DISPLAY: Store to Transmitter Data " + Binary.intToHexString(POKEMON_2_COMMAND);
+        displayPanelTitle = "DISPLAY";
         infoPanelTitle = "Combat Log";
     }
 
-
-
+    // Se vigilan los cambios a las direcciones de los registros
     protected void addAsObserver() {
-        // Set transmitter Control ready bit to 1, means we're ready to accept display character.
-        // updateMMIOControl(POKEMON_2_STATUS, readyBitSet(POKEMON_2_STATUS));
-        // We want to be an observer only of reads from POKEMON_1_COMMAND and writes to POKEMON_2_COMMAND.
-        // Use the Globals.memory.addObserver() methods instead of inherited method to achieve this.
         addAsObserver(POKEMON_1_COMMAND, POKEMON_1_COMMAND);
         addAsObserver(POKEMON_2_COMMAND, POKEMON_2_COMMAND);
         addAsObserver(POKEMON_1_STATUS, POKEMON_1_STATUS);
         addAsObserver(POKEMON_2_STATUS, POKEMON_2_STATUS);
-        // We want to be notified of each instruction execution, because instruction count is the
-        // basis for delay in re-setting (literally) the POKEMON_2_STATUS register.  SPIM does
-        // this too.  This simulates the time required for the display unit to process the
-        // POKEMON_2_COMMAND.
+
         addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
     }
 
@@ -137,9 +122,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
      */
     protected JComponent buildMainDisplayArea() {
         keyboardAndDisplay = new JPanel(new BorderLayout());
-        JSplitPane both = new JSplitPane(JSplitPane.VERTICAL_SPLIT, buildDisplay(), buildInfo());
-        both.setResizeWeight(0.3);
-        keyboardAndDisplay.add(both);
+        JSplitPane general = new JSplitPane(JSplitPane.VERTICAL_SPLIT, buildDisplay(), buildInfo());
+        keyboardAndDisplay.add(general);
         return keyboardAndDisplay;
     }
 
@@ -170,8 +154,18 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     private void getCommand(int intCommand, int intPokemon) {
         int command = (int) (intCommand & 0x000000FF);
-        if (command == 53){
-            display.append("" + (char) intCommand);
+        if (command == 1){
+            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
+        } else if (command == 2){
+            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
+        } else if (command == 3){
+            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
+        } else if (command == 4){
+            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+            display.append("Pokemon: " + intPokemon + " Ataque: " + command + "\n");
         }
     }
 
@@ -181,6 +175,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             logDisplay.append("Oh no! El pokemon " + intPokemon + " esta envenando!\n");
         } else if (status == 2){
             logDisplay.append("Oh no! El pokemon " + intPokemon + " esta dormido!\n");
+        } else if (status == 3){
+            logDisplay.append("Oh no! El pokemon " + intPokemon + " esta se ha desmayado!\n");
         }
     }
 
@@ -201,7 +197,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
         displayPanel.repaint();
         logDisplay.requestFocusInWindow();
-        updateMMIOControl(POKEMON_2_STATUS, readyBitSet(POKEMON_2_STATUS));
     }
 
 
@@ -217,7 +212,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             Dimension textDimensions = getDisplayPanelTextDimensions();
             columns = (int) textDimensions.getWidth();
             rows = (int) textDimensions.getHeight();
-            repaintDisplayPanelBorder();
             char[] charArray = new char[columns];
             Arrays.fill(charArray, VT_FILL);
             String row = new String(charArray);
@@ -229,31 +223,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         }
         display.setText(initialText);
         display.setCaretPosition(0);
-    }
-
-    // Update display window title with current text display capacity (columns and rows)
-    // This will be called when window resized or font changed.
-    private void repaintDisplayPanelBorder() {
-        Dimension size = this.getDisplayPanelTextDimensions();
-        int cols = (int) size.getWidth();
-        int rows = (int) size.getHeight();
-        int caretPosition = display.getCaretPosition();
-        String stringCaretPosition;
-        // display position as stream or 2D depending on random access
-        if (displayRandomAccessMode) {
-            if (((caretPosition + 1) % (columns + 1) != 0)) {
-                stringCaretPosition = "(" + (caretPosition % (columns + 1)) + "," + (caretPosition / (columns + 1)) + ")";
-            } else if (((caretPosition + 1) % (columns + 1) == 0) && ((caretPosition / (columns + 1)) + 1 == rows)) {
-                stringCaretPosition = "(" + (caretPosition % (columns + 1) - 1) + "," + (caretPosition / (columns + 1)) + ")";
-            } else {
-                stringCaretPosition = "(0," + ((caretPosition / (columns + 1)) + 1) + ")";
-            }
-        } else {
-            stringCaretPosition = "" + caretPosition;
-        }
-        String title = displayPanelTitle + ", cursor " + stringCaretPosition + ", area " + cols + " x " + rows;
-        ((TitledBorder) displayPanel.getBorder()).setTitle(title);
-        displayPanel.repaint();
     }
 
 
@@ -276,14 +245,15 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private class DisplayResizeAdapter extends ComponentAdapter {
         public void componentResized(ComponentEvent e) {
             getDisplayPanelTextDimensions();
-            repaintDisplayPanelBorder();
         }
     }
 
     @Override
     protected JComponent getHelpComponent() {
         final String helpContent =
-                "Pokemon TM\n\n";
+                "Pokemon TM\n\n" +
+                "Simulador de batalla Pokemon\n" + 
+                "Sigue siendo un prototipo!";
         JButton help = new JButton("Help");
         help.addActionListener(
                 new ActionListener() {
@@ -294,7 +264,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                         ja.setLineWrap(true);
                         ja.setWrapStyleWord(true);
                         final JDialog d;
-                        final String title = "Simulador de batalla Pokemon";
+                        final String title = "Pokemon TM";
                         // The following is necessary because there are different JDialog constructors for Dialog and
                         // Frame and theWindow is declared a Window, superclass for both.
                         d = (theWindow instanceof Dialog) ? new JDialog((Dialog) theWindow, title, false)
@@ -356,17 +326,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         updateDisplayBorder = new DisplayResizeAdapter();
         // 	To update display of size in the Display text area when window or font size changes.
         display.addComponentListener(updateDisplayBorder);
-        // 	To update display of caret position in the Display text area when caret position changes.
-        display.addCaretListener(
-                new CaretListener() {
-                    public void caretUpdate(CaretEvent e) {
-                        simulator.repaintDisplayPanelBorder();
-                    }
-                }
-        );
-
-        // 2011-07-29: Patrik Lundin, patrik@lundin.info
-        // Added code so display autoscrolls.
         DefaultCaret caret = (DefaultCaret) display.getCaret();
         caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         // end added autoscrolling
@@ -388,9 +347,9 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         logDisplay.setEditable(false);
         logDisplay.setFont(defaultFont);
         logDisplay.setMargin(textAreaInsets);
-        keyAccepterScrollPane = new JScrollPane(logDisplay);
-        keyAccepterScrollPane.setPreferredSize(new Dimension(1000, 100));
-        logPanel.add(keyAccepterScrollPane);
+        logAccepterScrollPane = new JScrollPane(logDisplay);
+        logAccepterScrollPane.setPreferredSize(new Dimension(1000, 100));
+        logPanel.add(logAccepterScrollPane);
         TitledBorder tb = new TitledBorder(infoPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
         logPanel.setBorder(tb);
@@ -437,46 +396,4 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             }
         }
     }
-
-
-    /////////////////////////////////////////////////////////////////////
-    // Return value of the given MMIO control register after ready (low order) bit set (to 1).
-    // Have to preserve the value of Interrupt Enable bit (bit 1)
-    private static boolean isReadyBitSet(int mmioControlRegister) {
-        try {
-            return (Globals.memory.get(mmioControlRegister, Memory.WORD_LENGTH_BYTES) & 1) == 1;
-        } catch (AddressErrorException aee) {
-            System.out.println("Tool author specified incorrect MMIO address!" + aee);
-            System.exit(0);
-        }
-        return false; // to satisfy the compiler -- this will never happen.
-    }
-
-
-    /////////////////////////////////////////////////////////////////////
-    // Return value of the given MMIO control register after ready (low order) bit set (to 1).
-    // Have to preserve the value of Interrupt Enable bit (bit 1)
-    private static int readyBitSet(int mmioControlRegister) {
-        try {
-            return Globals.memory.get(mmioControlRegister, Memory.WORD_LENGTH_BYTES) | 1;
-        } catch (AddressErrorException aee) {
-            System.out.println("Tool author specified incorrect MMIO address!" + aee);
-            System.exit(0);
-        }
-        return 1; // to satisfy the compiler -- this will never happen.
-    }
-
-    /////////////////////////////////////////////////////////////////////
-    //  Return value of the given MMIO control register after ready (low order) bit cleared (to 0).
-    // Have to preserve the value of Interrupt Enable bit (bit 1). Bits 2 and higher don't matter.
-    private static int readyBitCleared(int mmioControlRegister) {
-        try {
-            return Globals.memory.get(mmioControlRegister, Memory.WORD_LENGTH_BYTES) & 2;
-        } catch (AddressErrorException aee) {
-            System.out.println("Tool author specified incorrect MMIO address!" + aee);
-            System.exit(0);
-        }
-        return 0; // to satisfy the compiler -- this will never happen.
-    }
-
 }

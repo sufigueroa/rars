@@ -19,6 +19,11 @@ import java.util.Arrays;
 import java.util.Observable;
 import java.util.Random;
 import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
 
 
 public class PokemonGraphics extends AbstractToolAndApplication {
@@ -290,29 +295,28 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
 
-    //////////////////////////////////////////////////////////////////////////////////////
-    //  Private methods defined to support the above.
-    //////////////////////////////////////////////////////////////////////////////////////
+    private JPanel addImage(JPanel displayPanel){
+        try {
+            // BufferedImage image = ImageIO.read(new File("./src/images/dratini.png"));
+            BufferedImage image = ImageIO.read(new File("./src/images/grass_background.png"));
+            JLabel picLabel = new JLabel(new ImageIcon(image));
+            displayPanel.add(picLabel);
+        } catch (IOException ex) {
+            // handle exception...
+        }
+        return displayPanel;
+    }
 
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-    // UI components and layout for upper part of GUI, where simulated display is located.
-    private JComponent buildDisplayimagem(){
+    private JComponent buildDisplay(){
         displayPanel = new JPanel(new FlowLayout());
         TitledBorder tb = new TitledBorder(displayPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
         displayPanel.setBorder(tb);
-        
-        ImageIcon image = new ImageIcon(this.getClass().getResource("./src/images/dratini.png"));
-        // ImageIcon image = new ImageIcon("../../images/dratini.png");
-        JLabel imageLabel = new JLabel(image); 
-        imageLabel.setVisible(true);
-
-        displayPanel.add(imageLabel);
+        displayPanel = addImage(displayPanel);
         return displayPanel;
     }
 
-    private JComponent buildDisplay() {
+    private JComponent buildDisplayoriginal() {
         displayPanel = new JPanel(new BorderLayout());
         TitledBorder tb = new TitledBorder(displayPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);

@@ -50,7 +50,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JPanel keyboardAndDisplay;
     private JScrollPane displayScrollPane;
     private JTextArea display;
-    private JPanel displayPanel, displayOptions;
+    private JPanel displayPanel;
     private JPanel logPanel;
     private JScrollPane logAccepterScrollPane;
     private JTextArea logDisplay;
@@ -240,7 +240,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         return new Dimension(widthInPixels / charWidth - 1, heightInPixels / rowHeight - 1);
     }
 
-
     // Trigger recalculation and update of display text dimensions when window resized.
     private class DisplayResizeAdapter extends ComponentAdapter {
         public void componentResized(ComponentEvent e) {
@@ -298,19 +297,18 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     ////////////////////////////////////////////////////////////////////////////////////////
     // UI components and layout for upper part of GUI, where simulated display is located.
-    private JComponent buildDisplayimagen(){
+    private JComponent buildDisplayimagem(){
         displayPanel = new JPanel(new FlowLayout());
         TitledBorder tb = new TitledBorder(displayPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
         displayPanel.setBorder(tb);
-
         
-        // ImageIcon image = new ImageIcon(this.getClass().getResource("./src/images/dratini.png"));
-        // // ImageIcon image = new ImageIcon("../../images/dratini.png");
-        // JLabel imageLabel = new JLabel(image); 
-        // imageLabel.setVisible(true);
+        ImageIcon image = new ImageIcon(this.getClass().getResource("./src/images/dratini.png"));
+        // ImageIcon image = new ImageIcon("../../images/dratini.png");
+        JLabel imageLabel = new JLabel(image); 
+        imageLabel.setVisible(true);
 
-        // displayPanel.add(imageLabel);
+        displayPanel.add(imageLabel);
         return displayPanel;
     }
 
@@ -334,7 +332,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         displayScrollPane.setPreferredSize(preferredTextAreaDimension);
 
         displayPanel.add(displayScrollPane);
-        displayOptions = new JPanel();
         return displayPanel;
     }
 
@@ -362,13 +359,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         updateMMIOControlAndData(addr, intValue, 0, 0, true);
     }
 
-
     /////////////////////////////////////////////////////////////////////
     // update the MMIO Control and Data register pair -- 2 memory cells. We will delegate.
     private void updateMMIOControlAndData(int controlAddr, int controlValue, int dataAddr, int dataValue) {
         updateMMIOControlAndData(controlAddr, controlValue, dataAddr, dataValue, false);
     }
-
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // This one does the work: update the MMIO Control and optionally the Data register as well

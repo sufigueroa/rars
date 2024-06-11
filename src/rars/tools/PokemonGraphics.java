@@ -6,6 +6,7 @@ import rars.util.Binary;
 import rars.venus.util.AbstractFontSettingDialog;
 
 import javax.swing.*;
+import javax.swing.ImageIcon;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
@@ -17,6 +18,7 @@ import java.awt.event.*;
 import java.util.Arrays;
 import java.util.Observable;
 import java.util.Random;
+import java.io.*;
 
 
 public class PokemonGraphics extends AbstractToolAndApplication {
@@ -29,10 +31,10 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     public static Dimension preferredTextAreaDimension = new Dimension(1000, 250);
     private static Insets textAreaInsets = new Insets(4, 4, 4, 4);
 
-    public static int RECEIVER_CONTROL;    // keyboard Ready in low-order bit
-    public static int RECEIVER_DATA;       // keyboard character in low-order byte
-    public static int TRANSMITTER_CONTROL; // display Ready in low-order bit
-    public static int TRANSMITTER_DATA;    // display character in low-order byte
+    public static int POKEMON_1_STATUS;    // keyboard Ready in low-order bit
+    public static int POKEMON_1_COMMAND;       // keyboard character in low-order byte
+    public static int POKEMON_2_STATUS; // display Ready in low-order bit
+    public static int POKEMON_2_COMMAND;    // display character in low-order byte
     // These are used to track instruction counts to simulate driver delay of Transmitter Data
     private boolean countingInstructions;
     private int instructionCount;
@@ -41,7 +43,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     // Should the transmitted character be displayed before the transmitter delay period?
     // If not, hold onto it and print at the end of delay period.
-    private int intWithCharacterToDisplay;
+    private int intCommand;
+    private int intStatus;
     private boolean displayAfterDelay = true;
 
     // Whether or not display position is sequential (JTextArea append)
@@ -102,38 +105,29 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     // address space was final as well.  Now we will get MMIO base address
     // each time to reflect possible change in memory configuration. DPS 6-Aug-09
     protected void initializePreGUI() {
-        RECEIVER_CONTROL = Memory.memoryMapBaseAddress; //0xffff0000; // keyboard Ready in low-order bit
-        RECEIVER_DATA = Memory.memoryMapBaseAddress + 4; //0xffff0004; // keyboard character in low-order byte
-        TRANSMITTER_CONTROL = Memory.memoryMapBaseAddress + 8; //0xffff0008; // display Ready in low-order bit
-        TRANSMITTER_DATA = Memory.memoryMapBaseAddress + 12; //0xffff000c; // display character in low-order byte
-        displayPanelTitle = "DISPLAY: Store to Transmitter Data " + Binary.intToHexString(TRANSMITTER_DATA);
+        POKEMON_1_STATUS = Memory.memoryMapBaseAddress; //0xffff0000; // keyboard Ready in low-order bit
+        POKEMON_1_COMMAND = Memory.memoryMapBaseAddress + 4; //0xffff0004; // keyboard character in low-order byte
+        POKEMON_2_STATUS = Memory.memoryMapBaseAddress + 8; //0xffff0008; // display Ready in low-order bit
+        POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 12; //0xffff000c; // display character in low-order byte
+        displayPanelTitle = "DISPLAY: Store to Transmitter Data " + Binary.intToHexString(POKEMON_2_COMMAND);
         keyboardPanelTitle = "Combat Log";
     }
 
 
-    /**
-     * Override the inherited method, which registers us as an Observer over the static data segment
-     * (starting address 0x10010000) only.
-     * <p>
-     * When user enters keystroke, set RECEIVER_CONTROL and RECEIVER_DATA using the action listener.
-     * When user loads word (lw) from RECEIVER_DATA (we are notified of the read), then clear RECEIVER_CONTROL.
-     * When user stores word (sw) to TRANSMITTER_DATA (we are notified of the write), then clear TRANSMITTER_CONTROL, read TRANSMITTER_DATA,
-     * echo the character to display, wait for delay period, then set TRANSMITTER_CONTROL.
-     * <p>
-     * If you use the inherited GUI buttons, this method is invoked when you click "Connect" button on Tool or the
-     * "Assemble and Run" button on a Rars-based app.
-     */
+
     protected void addAsObserver() {
         // Set transmitter Control ready bit to 1, means we're ready to accept display character.
-        updateMMIOControl(TRANSMITTER_CONTROL, readyBitSet(TRANSMITTER_CONTROL));
-        // We want to be an observer only of reads from RECEIVER_DATA and writes to TRANSMITTER_DATA.
+        // updateMMIOControl(POKEMON_2_STATUS, readyBitSet(POKEMON_2_STATUS));
+        // We want to be an observer only of reads from POKEMON_1_COMMAND and writes to POKEMON_2_COMMAND.
         // Use the Globals.memory.addObserver() methods instead of inherited method to achieve this.
-        addAsObserver(RECEIVER_DATA, RECEIVER_DATA);
-        addAsObserver(TRANSMITTER_DATA, TRANSMITTER_DATA);
+        addAsObserver(POKEMON_1_COMMAND, POKEMON_1_COMMAND);
+        addAsObserver(POKEMON_2_COMMAND, POKEMON_2_COMMAND);
+        addAsObserver(POKEMON_1_STATUS, POKEMON_1_STATUS);
+        addAsObserver(POKEMON_2_STATUS, POKEMON_2_STATUS);
         // We want to be notified of each instruction execution, because instruction count is the
-        // basis for delay in re-setting (literally) the TRANSMITTER_CONTROL register.  SPIM does
+        // basis for delay in re-setting (literally) the POKEMON_2_STATUS register.  SPIM does
         // this too.  This simulates the time required for the display unit to process the
-        // TRANSMITTER_DATA.
+        // POKEMON_2_COMMAND.
         addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
     }
 
@@ -162,105 +156,44 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     @Override
     protected void processRISCVUpdate(Observable memory, AccessNotice accessNotice) {
         MemoryAccessNotice notice = (MemoryAccessNotice) accessNotice;
-        // If the program has just read (loaded) the receiver (keyboard) data register,
-        // then clear the Ready bit to indicate there is no longer a keystroke available.
-        // If Ready bit was initially clear, they'll get the old keystroke -- serves 'em right
-        // for not checking!
-        if (notice.getAddress() == RECEIVER_DATA && notice.getAccessType() == AccessNotice.READ) {
-            updateMMIOControl(RECEIVER_CONTROL, readyBitCleared(RECEIVER_CONTROL));
-        }
-        // The program has just written (stored) the transmitter (display) data register.  If transmitter
-        // Ready bit is clear, device is not ready yet so ignore this event -- serves 'em right for not checking!
-        // If transmitter Ready bit is set, then clear it to indicate the display device is processing the character.
-        // Also start an intruction counter that will simulate the delay of the slower
-        // display device processing the character.
-        if (isReadyBitSet(TRANSMITTER_CONTROL) && notice.getAddress() == TRANSMITTER_DATA && notice.getAccessType() == AccessNotice.WRITE) {
-            updateMMIOControl(TRANSMITTER_CONTROL, readyBitCleared(TRANSMITTER_CONTROL));
-            intWithCharacterToDisplay = notice.getValue();
-            if (!displayAfterDelay) displayCharacter(intWithCharacterToDisplay);
+        System.out.println("Cambio en Memoria: " + notice.getAddress() + " valor: " + notice.getValue());
+        
+        if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
+            intCommand = notice.getValue();
+            getCommand(intCommand, 1);
+            this.countingInstructions = true;
+            this.instructionCount = 0;
+        } else if (notice.getAddress() == POKEMON_2_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
+            intCommand = notice.getValue();
+            getCommand(intCommand, 2);
+            this.countingInstructions = true;
+            this.instructionCount = 0;
+        } else if (notice.getAddress() == POKEMON_1_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
+            intStatus = notice.getValue();
+            getStatus(intStatus, 1);
+            this.countingInstructions = true;
+            this.instructionCount = 0;
+        } else if (notice.getAddress() == POKEMON_2_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
+            intStatus = notice.getValue();
+            getStatus(intStatus, 2);
             this.countingInstructions = true;
             this.instructionCount = 0;
         }
-        // We have been notified of an instruction execution.
-        // If we are in transmit delay period, increment instruction count and if limit
-        // has been reached, set the transmitter Ready flag to indicate the program
-        // can write another character to the transmitter data register.  If the Interrupt-Enabled
-        // bit had been set by the program, generate an interrupt!
-        if (this.countingInstructions &&
-                notice.getAccessType() == AccessNotice.READ && Memory.inTextSegment(notice.getAddress())) {
-            this.instructionCount++;
-            if (this.instructionCount >= this.transmitDelayInstructionCountLimit) {
-                if (displayAfterDelay) displayCharacter(intWithCharacterToDisplay);
-                this.countingInstructions = false;
-                int updatedTransmitterControl = readyBitSet(TRANSMITTER_CONTROL);
-                updateMMIOControl(TRANSMITTER_CONTROL, updatedTransmitterControl);
-                if (updatedTransmitterControl != 1) {
-                    InterruptController.registerExternalInterrupt(EXTERNAL_INTERRUPT_DISPLAY);
-                }
-            }
+    }
+
+    private void getCommand(int intCommand, int intPokemon) {
+        int command = (int) (intCommand & 0x000000FF);
+        if (command == 53){
+            display.append("" + (char) intCommand);
         }
     }
 
-    private static final char CLEAR_SCREEN = 12; // ASCII Form Feed
-    private static final char SET_CURSOR_X_Y = 7; // ASCII Bell  (ding ding!)
-
-    // Method to display the character stored in the low-order byte of
-    // the parameter.  We also recognize two non-printing characters:
-    //  Decimal 12 (Ascii Form Feed) to clear the display
-    //  Decimal  7 (Ascii Bell) to place the cursor at a specified (X,Y) position.
-    //             of a virtual text terminal.  The position is specified in the high
-    //             order 24 bits of the transmitter word (X in 20-31, Y in 8-19).
-    //             Thus the parameter is the entire word, not just the low-order byte.
-    // Once the latter is performed, the display mode changes to random
-    // access, which has repercussions for the implementation of character display.
-    private void displayCharacter(int intWithCharacterToDisplay) {
-        char characterToDisplay = (char) (intWithCharacterToDisplay & 0x000000FF);
-        if (characterToDisplay == CLEAR_SCREEN) {
-            initializeDisplay(displayRandomAccessMode);
-        } else if (characterToDisplay == SET_CURSOR_X_Y) {
-            // First call will activate random access mode.
-            // We're using JTextArea, where caret has to be within text.
-            // So initialize text to all spaces to fill the JTextArea to its
-            // current capacity.  Then set caret.  Subsequent character
-            // displays will replace, not append, in the text.
-            if (!displayRandomAccessMode) {
-                displayRandomAccessMode = true;
-                initializeDisplay(displayRandomAccessMode);
-            }
-            // For SET_CURSOR_X_Y, we need data from the rest of the word.
-            // High order 3 bytes are split in half to store (X,Y) value.
-            // High 12 bits contain X value, next 12 bits contain Y value.
-            int x = (intWithCharacterToDisplay & 0xFFF00000) >>> 20;
-            int y = (intWithCharacterToDisplay & 0x000FFF00) >>> 8;
-            // If X or Y values are outside current range, set to range limit.
-            if (x < 0) x = 0;
-            if (x >= columns) x = columns - 1;
-            if (y < 0) y = 0;
-            if (y >= rows) y = rows - 1;
-            // display is a JTextArea whose character positioning in the text is linear.
-            // Converting (row,column) to linear position requires knowing how many columns
-            // are in each row.  I add one because each row except the last ends with '\n' that
-            // does not count as a column but occupies a position in the text string.
-            // The values of rows and columns is set in initializeDisplay().
-            display.setCaretPosition(y * (columns + 1) + x);
-        } else {
-            if (displayRandomAccessMode) {
-                try {
-                    int caretPosition = display.getCaretPosition();
-                    // if caret is positioned at the end of a line (at the '\n'), skip over the '\n'
-                    if ((caretPosition + 1) % (columns + 1) == 0) {
-                        caretPosition++;
-                        display.setCaretPosition(caretPosition);
-                    }
-                    display.replaceRange("" + characterToDisplay, caretPosition, caretPosition + 1);
-                } catch (IllegalArgumentException e) {
-                    // tried to write off the end of the defined grid.
-                    display.setCaretPosition(display.getCaretPosition() - 1);
-                    display.replaceRange("" + characterToDisplay, display.getCaretPosition(), display.getCaretPosition() + 1);
-                }
-            } else {
-                display.append("" + characterToDisplay);
-            }
+    private void getStatus(int intStatus, int intPokemon) {
+        int status = (int) (intStatus & 0x000000FF);
+        if (status == 1){
+            keyEventAccepter.append("Oh no! El pokemon " + intPokemon + " esta envenando!\n");
+        } else if (status == 2){
+            keyEventAccepter.append("Oh no! El pokemon " + intPokemon + " esta dormido!\n");
         }
     }
 
@@ -281,7 +214,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
         displayPanel.repaint();
         keyEventAccepter.requestFocusInWindow();
-        updateMMIOControl(TRANSMITTER_CONTROL, readyBitSet(TRANSMITTER_CONTROL));
+        updateMMIOControl(POKEMON_2_STATUS, readyBitSet(POKEMON_2_STATUS));
     }
 
 
@@ -373,16 +306,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                         ja.setColumns(60);
                         ja.setLineWrap(true);
                         ja.setWrapStyleWord(true);
-                        // TODO: potentially implement method 2
-                        // Make the Help dialog modeless (can remain visible while working with other components).
-                        // Unfortunately, JOptionPane.showMessageDialog() cannot be made modeless.  I found two
-                        // workarounds:
-                        //  (1) Use JDialog and the additional work that requires
-                        //  (2) create JOptionPane object, get JDialog from it, make the JDialog modeless
-                        // Solution 2 is shorter but requires Java 1.6.  Trying to keep MARS at 1.5.  So we
-                        // do it the hard way.  DPS 16-July-2014
                         final JDialog d;
-                        final String title = "Simulating the Keyboard and Display";
+                        final String title = "Simulador de batalla Pokemon";
                         // The following is necessary because there are different JDialog constructors for Dialog and
                         // Frame and theWindow is declared a Window, superclass for both.
                         d = (theWindow instanceof Dialog) ? new JDialog((Dialog) theWindow, title, false)
@@ -403,15 +328,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                         d.getContentPane().add(p, BorderLayout.SOUTH);
                         d.setLocationRelativeTo(theWindow);
                         d.setVisible(true);
-                        // This alternative technique is simpler than the above but requires java 1.6!  DPS 16-July-2014
-                        //       JOptionPane theStuff = new JOptionPane(new JScrollPane(ja),JOptionPane.INFORMATION_MESSAGE,
-                        //            JOptionPane.DEFAULT_OPTION, null, new String[]{"Close"} );
-                        //       JDialog theDialog = theStuff.createDialog(theWindow, "Simulating the Keyboard and Display");
-                        //       theDialog.setModal(false);
-                        //       theDialog.setVisible(true);
-                        // The original code. Cannot be made modeless.
-                        //       JOptionPane.showMessageDialog(theWindow, new JScrollPane(ja),
-                        //           "Simulating the Keyboard and Display", JOptionPane.INFORMATION_MESSAGE);
                     }
                 });
         return help;
@@ -425,6 +341,22 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     ////////////////////////////////////////////////////////////////////////////////////////
     // UI components and layout for upper part of GUI, where simulated display is located.
+    private JComponent buildDisplayimagen(){
+        displayPanel = new JPanel(new FlowLayout());
+        TitledBorder tb = new TitledBorder(displayPanelTitle);
+        tb.setTitleJustification(TitledBorder.CENTER);
+        displayPanel.setBorder(tb);
+
+        
+        // ImageIcon image = new ImageIcon(this.getClass().getResource("./src/images/dratini.png"));
+        // // ImageIcon image = new ImageIcon("../../images/dratini.png");
+        // JLabel imageLabel = new JLabel(image); 
+        // imageLabel.setVisible(true);
+
+        // displayPanel.add(imageLabel);
+        return displayPanel;
+    }
+
     private JComponent buildDisplay() {
         displayPanel = new JPanel(new BorderLayout());
         TitledBorder tb = new TitledBorder(displayPanelTitle);
@@ -558,30 +490,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             System.exit(0);
         }
         return 0; // to satisfy the compiler -- this will never happen.
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////
-    //
-    //  Class to grab keystrokes going to keyboard echo area and send them to MMIO area
-    //
-
-    private class KeyboardKeyListener implements KeyListener {
-        public void keyTyped(KeyEvent e) {
-            int updatedReceiverControl = readyBitSet(RECEIVER_CONTROL);
-            updateMMIOControlAndData(RECEIVER_CONTROL, updatedReceiverControl, RECEIVER_DATA, e.getKeyChar() & 0x00000ff);
-            if (updatedReceiverControl != 1) {
-                InterruptController.registerExternalInterrupt(EXTERNAL_INTERRUPT_KEYBOARD);
-            }
-        }
-
-
-        /* Ignore key pressed event from the text field. */
-        public void keyPressed(KeyEvent e) {
-        }
-
-        /* Ignore key released event from the text field. */
-        public void keyReleased(KeyEvent e) {
-        }
     }
 
 }

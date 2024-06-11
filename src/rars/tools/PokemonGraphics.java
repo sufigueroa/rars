@@ -60,7 +60,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     public static int POKEMON_2_COMMAND;    // Registro de comandos del segundo pokemon
 
     private int idPokeAtk = 1;
-    private int idPokeDef = 1;
+    private int idPokeDef = 2;
 
     private int intCommand;                 // Numero del comando a ejecutar
     private int intStatus;                  // Numero del estado
@@ -182,10 +182,14 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         int status = (int) (intStatus & 0x000000FF);
         int id = (int) (intStatus & 0x0000FF00) >> 8;
         System.out.println("Pokemon " + intPokemon + " id: " + id);
-        if (id > 0 && intPokemon == 1){
+        if (id > 0 && intPokemon == 1 && idPokeAtk != id){
             idPokeAtk = id;
-        } else if (id > 0 && intPokemon == 2){
+            logDisplay.append("Enhorabuena! El pokemon " + intPokemon + " ha evolucionado!\n");
+            recalculateDisplay();
+        } else if (id > 0 && intPokemon == 2 && idPokeDef != id){
             idPokeDef = id;
+            logDisplay.append("Enhorabuena! El pokemon " + intPokemon + " ha evolucionado!\n");
+            recalculateDisplay();
         }
         if (status == 1){
             logDisplay.append("Oh no! El pokemon " + intPokemon + " esta envenando!\n");
@@ -201,6 +205,12 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         logDisplay.requestFocusInWindow();
     }
 
+    private void recalculateDisplay(){
+        displayPanel.removeAll();
+        displayPanel.add(addImage());
+        displayPanel.revalidate();
+        displayPanel.repaint();
+    }
 
     /**
      * Method to reset counters and display when the Reset button selected.
@@ -210,8 +220,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         displayRandomAccessMode = false;
         logDisplay.setText("Se ha iniciado una nueva batalla pokemon\n");
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
-        displayPanel.repaint();
-        buildDisplay();
+        recalculateDisplay();
         logDisplay.requestFocusInWindow();
     }
 
@@ -278,19 +287,21 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         return help;
     }
 
-    private void mergeImages(){
+    private BufferedImage mergeImages(){
+        BufferedImage combined;
         System.out.println("Merge de imagen!" + idPokeAtk + idPokeDef);
         try {
-            String idAtk = "front/" + String.format("%03d", idPokeAtk) + ".png";
-            String idDef = "back/" + String.format("%03d", idPokeDef) + ".png";
+            System.out.println("Toy adentro");
+            String idAtk = "back/" + String.format("%03d", idPokeAtk) + ".png";
+            String idDef = "front/" + String.format("%03d", idPokeDef) + ".png";
             BufferedImage background = ImageIO.read(new File(pathPokemons, "grass_background.png"));
-            BufferedImage pokemon_defensor = ImageIO.read(new File(pathPokemons, idAtk));
-            BufferedImage pokemon_atacante = ImageIO.read(new File(pathPokemons, idDef));
+            BufferedImage pokemon_atacante = ImageIO.read(new File(pathPokemons, idAtk));
+            BufferedImage pokemon_defensor = ImageIO.read(new File(pathPokemons, idDef));
 
             // create the new image, canvas size is the max. of both image sizes
             int w = background.getWidth();
             int h = background.getHeight();
-            BufferedImage combined = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+            combined = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 
             // paint both images, preserving the alpha channels
             Graphics g = combined.getGraphics();
@@ -298,33 +309,26 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             g.drawImage(pokemon_defensor, poke_def_x, poke_def_y, null);
             g.drawImage(pokemon_atacante, poke_atk_x, poke_atk_y, null);
             g.dispose();
-
-            // Save as new image
+            // // Save as new image
             ImageIO.write(combined, "PNG", new File(pathPokemons, "temp.png"));
-
         } catch (IOException ex) {
-            // handle exception...
+            combined = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB);
         }
+        return combined;
     }
 
-    private JPanel addImage(JPanel displayPanel){
-        try {
-            mergeImages();
-            BufferedImage image = ImageIO.read(new File(pathPokemons, "temp.png"));
-            JLabel picLabel = new JLabel(new ImageIcon(image));
-            displayPanel.add(picLabel);
-        } catch (IOException ex) {
-            // handle exception...
-        }
-        return displayPanel;
+    private JLabel addImage(){
+        BufferedImage image = mergeImages();
+        JLabel picLabel = new JLabel(new ImageIcon(image));
+        return picLabel;
     }
 
-    private JComponent buildDisplay(){
+    private JPanel buildDisplay(){
         displayPanel = new JPanel(new FlowLayout());
         TitledBorder tb = new TitledBorder(displayPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
         displayPanel.setBorder(tb);
-        displayPanel = addImage(displayPanel);
+        displayPanel.add(addImage());
         return displayPanel;
     }
 

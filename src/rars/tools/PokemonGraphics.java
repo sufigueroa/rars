@@ -25,6 +25,10 @@ import javax.imageio.ImageIO;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
+import java.util.HashMap;
+import java.util.Enumeration;
+import java.util.Hashtable;
+
 
 public class PokemonGraphics extends AbstractToolAndApplication {
 
@@ -54,6 +58,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JButton fontButton;
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
+    public HashMap<Integer, String> pokemonNames = new HashMap<Integer, String>();
+
     public static int POKEMON_1_STATUS;     // Registro de estado del primer pokemon
     public static int POKEMON_1_COMMAND;    // Registro de comandos del primer pokemon
     public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
@@ -71,30 +77,15 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private int poke_atk_x = 30;
     private int poke_atk_y = 95;
 
-    /**
-     * Simple constructor, likely used to run a stand-alone keyboard/display simulator.
-     *
-     * @param title   String containing title for title bar
-     * @param heading String containing text for heading shown in upper part of window.
-     */
     public PokemonGraphics(String title, String heading) {
         super(title, heading);
         simulator = this;
     }
 
-    /**
-     * Simple constructor, likely used by the RARS Tools menu mechanism
-     */
     public PokemonGraphics() {
         this(heading + ", " + version, heading);
     }
 
-    /**
-     * Main provided for pure stand-alone use.  Recommended stand-alone use is to write a
-     * driver program that instantiates a PokemonGraphics object then invokes its go() method.
-     * "stand-alone" means it is not invoked from the RARS Tools menu.  "Pure" means there
-     * is no driver program to invoke the application.
-     */
     public static void main(String[] args) {
         new PokemonGraphics(heading + " stand-alone, " + version, heading).go();
     }
@@ -102,6 +93,109 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     @Override
     public String getName() {
         return "Pokemon TM";
+    }
+
+    private void initializePokemon(){
+        pokemonNames.put(1, "Bulbasaur");
+        pokemonNames.put(2, "Ivysaur");
+        pokemonNames.put(3, "Venusaur");
+        pokemonNames.put(4, "Charmander");
+        pokemonNames.put(5, "Charmeleon");
+        pokemonNames.put(6, "Charizard");
+        pokemonNames.put(7, "Squirtle");
+        pokemonNames.put(8, "Wartortle");
+        pokemonNames.put(9, "Blastoise");
+        pokemonNames.put(10, "Caterpie");
+        pokemonNames.put(11, "Metapod");
+        pokemonNames.put(12, "Butterfree"); 
+        pokemonNames.put(13, "Weedle"); 
+        pokemonNames.put(14, "Kakuna"); 
+        pokemonNames.put(15, "Beedrill"); 
+        pokemonNames.put(16, "Pidgey"); 
+        pokemonNames.put(17, "Pidgeotto"); 
+        pokemonNames.put(18, "Pidgeot"); 
+        pokemonNames.put(19, "Rattata"); 
+        pokemonNames.put(20, "Raticate"); 
+        pokemonNames.put(21, "Spearow"); 
+        pokemonNames.put(22, "Fearow"); 
+        pokemonNames.put(23, "Ekans"); 
+        pokemonNames.put(24, "Arbok"); 
+        pokemonNames.put(25, "Pikachu"); 
+        pokemonNames.put(26, "Raichu"); 
+        pokemonNames.put(27, "Sandshrew"); 
+        pokemonNames.put(28, "Sandslash"); 
+        pokemonNames.put(29, "Nidoran"); 
+        pokemonNames.put(30, "Nidorina"); 
+        pokemonNames.put(31, "Nidoqueen"); 
+        pokemonNames.put(32, "Nidoran"); 
+        pokemonNames.put(33, "Nidorino"); 
+        pokemonNames.put(34, "Nidoking"); 
+        pokemonNames.put(35, "Clefairy"); 
+        pokemonNames.put(36, "Clefable");
+        pokemonNames.put(37, "Vulpix"); 
+        pokemonNames.put(38, "Ninetales");
+        pokemonNames.put(39, "Jigglypuff");
+        pokemonNames.put(40, "Wigglytuff");
+        pokemonNames.put(41, "Zubat");
+        pokemonNames.put(42, "Golbat");
+        pokemonNames.put(43, "Oddish");
+        pokemonNames.put(44, "Gloom");
+        pokemonNames.put(45, "Vileplume");
+        pokemonNames.put(46, "Paras");
+        pokemonNames.put(47, "Parasect");
+        pokemonNames.put(48, "Venonat");
+        pokemonNames.put(49, "Venomoth");
+        pokemonNames.put(50, "Diglett");
+        pokemonNames.put(51, "Dugtrio");
+        pokemonNames.put(52, "Meowth");
+        pokemonNames.put(53, "Persian");
+        pokemonNames.put(54, "Psyduck");
+        pokemonNames.put(55, "Golduck");
+        pokemonNames.put(56, "Mankey");
+        pokemonNames.put(57, "Primeape");
+        pokemonNames.put(58, "Growlithe");
+        pokemonNames.put(59, "Arcanine");
+        pokemonNames.put(60, "Poliway");
+        pokemonNames.put(61, "Poliwhirl");
+        pokemonNames.put(62, "Poliwrath");
+        pokemonNames.put(63, "Abra");
+        pokemonNames.put(64, "Kadabra");
+        pokemonNames.put(65, "Alakazam");
+        pokemonNames.put(66, "Machop");
+        pokemonNames.put(67, "Machoke");
+        pokemonNames.put(68, "Machamp");
+        pokemonNames.put(69, "Bellsprout");
+        pokemonNames.put(70, "Weepinbell");
+        pokemonNames.put(71, "Victreebel");
+        pokemonNames.put(72, "Tentacool");
+        pokemonNames.put(73, "Tentacruel");
+        pokemonNames.put(74, "Geodude");
+        pokemonNames.put(75, "Graveler");
+        pokemonNames.put(76, "Golem");
+        pokemonNames.put(77, "Ponyta");
+        pokemonNames.put(78, "Rapidash");
+        pokemonNames.put(79, "Slowpoke");
+        pokemonNames.put(80, "Slowbro");
+        pokemonNames.put(81, "Magnemite");
+        pokemonNames.put(82, "Magneton");
+        pokemonNames.put(83, "Farfetch'd");
+        pokemonNames.put(84, "Doduo");
+        pokemonNames.put(85, "Dodrio");
+        pokemonNames.put(86, "Seel");
+        pokemonNames.put(87, "Dewgong");
+        pokemonNames.put(88, "Grimer");
+        pokemonNames.put(89, "Muk");
+        pokemonNames.put(90, "Shellder");
+        pokemonNames.put(91, "Cloyster");
+        pokemonNames.put(92, "Gastly");
+        pokemonNames.put(93, "Haunter");
+        pokemonNames.put(94, "Gengar");
+        pokemonNames.put(95, "Onix");
+        pokemonNames.put(96, "Drowzee");
+        pokemonNames.put(97, "Hypno");
+        pokemonNames.put(98, "Krabby");
+        pokemonNames.put(99, "Kingler");
+        pokemonNames.put(100, "Voltorb");
     }
 
     // Se definen los valores de los registros
@@ -112,6 +206,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 12; //0xffff000c; // display character in low-order byte
         displayPanelTitle = "DISPLAY";
         infoPanelTitle = "Combat Log";
+        initializePokemon();
     }
 
     // Se vigilan los cambios a las direcciones de los registros
@@ -182,21 +277,22 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         int status = (int) (intStatus & 0x000000FF);
         int id = (int) (intStatus & 0x0000FF00) >> 8;
         System.out.println("Pokemon " + intPokemon + " id: " + id);
+        String nombre = pokemonNames.get(id);
         if (id > 0 && intPokemon == 1 && idPokeAtk != id){
             idPokeAtk = id;
-            logDisplay.append("Enhorabuena! El pokemon " + intPokemon + " ha evolucionado!\n");
+            logDisplay.append("Enhorabuena! " + nombre + " ha evolucionado!\n");
             recalculateDisplay();
         } else if (id > 0 && intPokemon == 2 && idPokeDef != id){
             idPokeDef = id;
-            logDisplay.append("Enhorabuena! El pokemon " + intPokemon + " ha evolucionado!\n");
+            logDisplay.append("Enhorabuena! " + nombre + " ha evolucionado!\n");
             recalculateDisplay();
         }
         if (status == 1){
-            logDisplay.append("Oh no! El pokemon " + intPokemon + " esta envenando!\n");
+            logDisplay.append("Oh no! " + nombre + " esta envenando!\n");
         } else if (status == 2){
-            logDisplay.append("Oh no! El pokemon " + intPokemon + " esta dormido!\n");
+            logDisplay.append("Oh no! " + nombre + " esta dormido!\n");
         } else if (status == 3){
-            logDisplay.append("Oh no! El pokemon " + intPokemon + " esta se ha desmayado!\n");
+            logDisplay.append("Oh no! " + nombre + " esta se ha desmayado!\n");
         }
     }
 

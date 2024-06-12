@@ -42,4 +42,18 @@ squirtle:
 			11	# Ataque Especial
 			12	# Defensa Especial
 			10	# Velocidad
+
+caterpie:
+	.word	10	# ID
+			2	# Tipo 		0: Planta	1: Fuego	2: Agua
+			5	# Nivel
+			0	# Exp
+			0	# Estado	0: Saludable	1: Envenenado	2: Dormido	3: Desmayado
+			20	# HP
+			20	# HP Total
+			11	# Ataque
+			10	# Defensa
+			11	# Ataque Especial
+			12	# Defensa Especial
+			10	# Velocidad
 	

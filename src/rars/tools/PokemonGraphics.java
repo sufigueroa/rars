@@ -292,9 +292,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         }
     }
 
-	// 		0	# Estado	0: Saludable	1: Envenenado	2: Dormido	3: Desmayado
-	// 		20	# HP
-
 	// 		20	# HP Total
 	// 		12	# Ataque
 	// 		7	# Defensa
@@ -542,15 +539,19 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         tb.setTitleJustification(TitledBorder.CENTER);
         displayPanel.setBorder(tb);
         displayPanel.add(infoAtkPokemon(), BorderLayout.WEST);
+        displayPanel.add(Box.createHorizontalStrut(50));
         displayPanel.add(addImage(), BorderLayout.CENTER);
+        displayPanel.add(Box.createHorizontalStrut(50));
         displayPanel.add(infoDefPokemon(), BorderLayout.EAST);
         return displayPanel;
     }
 
     private JPanel infoAtkPokemon(){
-        JPanel infoPanel = new JPanel(new GridLayout(12,1));
+        JPanel infoPanel = new JPanel(new GridLayout(13,1));
         String nombre = pokemonNames.get(atkInfo[0]);
-        infoPanel.add(new JLabel("Info " + nombre));
+        JLabel nameLabel = new JLabel("Info " + nombre);
+        nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        infoPanel.add(nameLabel);
         infoPanel.add(new JLabel("Id :" + atkInfo[0]));
         infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(atkInfo[1])));
         infoPanel.add(new JLabel("Nivel: " + atkInfo[2]));
@@ -567,9 +568,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private JPanel infoDefPokemon(){
-        JPanel infoPanel = new JPanel(new GridLayout(12,1));
+        JPanel infoPanel = new JPanel(new GridLayout(13,1));
         String nombre = pokemonNames.get(defInfo[0]);
-        infoPanel.add(new JLabel("Info " + nombre));
+        JLabel nameLabel = new JLabel("Info " + nombre);
+        nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        infoPanel.add(nameLabel);
         infoPanel.add(new JLabel("Id :" + defInfo[0]));
         infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(defInfo[1])));
         infoPanel.add(new JLabel("Nivel: " + defInfo[2]));
@@ -588,7 +591,9 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private void refreshDisplay(){
         displayPanel.removeAll();
         displayPanel.add(infoAtkPokemon(), BorderLayout.WEST);
+        displayPanel.add(Box.createHorizontalStrut(50));
         displayPanel.add(addImage(), BorderLayout.CENTER);
+        displayPanel.add(Box.createHorizontalStrut(50));
         displayPanel.add(infoDefPokemon(), BorderLayout.EAST);
         displayPanel.revalidate();
         displayPanel.repaint();
@@ -603,7 +608,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         logDisplay.setFont(defaultFont);
         logDisplay.setMargin(textAreaInsets);
         logAccepterScrollPane = new JScrollPane(logDisplay);
-        logAccepterScrollPane.setPreferredSize(new Dimension(1000, 100));
+        logAccepterScrollPane.setPreferredSize(new Dimension(700, 100));
         logPanel.add(logAccepterScrollPane);
         TitledBorder tb = new TitledBorder(infoPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);

@@ -59,14 +59,16 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
     public HashMap<Integer, String> pokemonNames = new HashMap<Integer, String>();
+    public HashMap<Integer, String> pokemonTypes = new HashMap<Integer, String>();
+    public HashMap<Integer, String> pokemonStatus = new HashMap<Integer, String>();
 
     public static int POKEMON_1_STATUS;     // Registro de estado del primer pokemon
     public static int POKEMON_1_COMMAND;    // Registro de comandos del primer pokemon
     public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
     public static int POKEMON_2_COMMAND;    // Registro de comandos del segundo pokemon
 
-    private int idPokeAtk = 1;
-    private int idPokeDef = 2;
+    private int[] atkInfo = new int[]{1, 0, 5, 0, 0, 21, 21, 11, 8, 13, 13, 11};
+    private int[] defInfo = new int[]{4, 1, 5, 0, 0, 20, 20, 12, 7, 10, 11, 13};
 
     private int intCommand;                 // Numero del comando a ejecutar
     private int intStatus;                  // Numero del estado
@@ -96,6 +98,15 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private void initializePokemon(){
+        pokemonTypes.put(0, "Planta");
+        pokemonTypes.put(1, "Fuego");
+        pokemonTypes.put(2, "Agua");
+
+        pokemonStatus.put(0, "Saludable");
+        pokemonStatus.put(1, "Envenenado");
+        pokemonStatus.put(2, "Dormido");
+        pokemonStatus.put(3, "Desmayado");
+
         pokemonNames.put(1, "Bulbasaur");
         pokemonNames.put(2, "Ivysaur");
         pokemonNames.put(3, "Venusaur");
@@ -243,7 +254,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     @Override
     protected void processRISCVUpdate(Observable memory, AccessNotice accessNotice) {
         MemoryAccessNotice notice = (MemoryAccessNotice) accessNotice;
-        System.out.println("Cambio en Memoria: " + notice.getAddress() + " valor: " + notice.getValue());
         
         if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
@@ -278,14 +288,14 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         int id = (int) (intStatus & 0x0000FF00) >> 8;
         System.out.println("Pokemon " + intPokemon + " id: " + id);
         String nombre = pokemonNames.get(id);
-        if (id > 0 && intPokemon == 1 && idPokeAtk != id){
-            idPokeAtk = id;
+        if (id > 0 && intPokemon == 1 && atkInfo[0] != id){
+            atkInfo[0] = id;
             logDisplay.append("Enhorabuena! " + nombre + " ha evolucionado!\n");
-            recalculateDisplay();
-        } else if (id > 0 && intPokemon == 2 && idPokeDef != id){
-            idPokeDef = id;
+            refreshDisplay();
+        } else if (id > 0 && intPokemon == 2 && defInfo[0] != id){
+            defInfo[0] = id;
             logDisplay.append("Enhorabuena! " + nombre + " ha evolucionado!\n");
-            recalculateDisplay();
+            refreshDisplay();
         }
         if (status == 1){
             logDisplay.append("Oh no! " + nombre + " esta envenando!\n");
@@ -301,13 +311,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         logDisplay.requestFocusInWindow();
     }
 
-    private void recalculateDisplay(){
-        displayPanel.removeAll();
-        displayPanel.add(addImage());
-        displayPanel.revalidate();
-        displayPanel.repaint();
-    }
-
     /**
      * Method to reset counters and display when the Reset button selected.
      * Overrides inherited method that does nothing.
@@ -316,7 +319,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         displayRandomAccessMode = false;
         logDisplay.setText("Se ha iniciado una nueva batalla pokemon\n");
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
-        recalculateDisplay();
+        refreshDisplay();
         logDisplay.requestFocusInWindow();
     }
 
@@ -385,11 +388,9 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     private BufferedImage mergeImages(){
         BufferedImage combined;
-        System.out.println("Merge de imagen!" + idPokeAtk + idPokeDef);
         try {
-            System.out.println("Toy adentro");
-            String idAtk = "back/" + String.format("%03d", idPokeAtk) + ".png";
-            String idDef = "front/" + String.format("%03d", idPokeDef) + ".png";
+            String idAtk = "back/" + String.format("%03d", atkInfo[0]) + ".png";
+            String idDef = "front/" + String.format("%03d", defInfo[0]) + ".png";
             BufferedImage background = ImageIO.read(new File(pathPokemons, "grass_background.png"));
             BufferedImage pokemon_atacante = ImageIO.read(new File(pathPokemons, idAtk));
             BufferedImage pokemon_defensor = ImageIO.read(new File(pathPokemons, idDef));
@@ -424,8 +425,57 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         TitledBorder tb = new TitledBorder(displayPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
         displayPanel.setBorder(tb);
-        displayPanel.add(addImage());
+        displayPanel.add(infoAtkPokemon(), BorderLayout.WEST);
+        displayPanel.add(addImage(), BorderLayout.CENTER);
+        displayPanel.add(infoDefPokemon(), BorderLayout.EAST);
         return displayPanel;
+    }
+
+    private JPanel infoAtkPokemon(){
+        JPanel infoPanel = new JPanel(new GridLayout(12,1));
+        String nombre = pokemonNames.get(atkInfo[0]);
+        infoPanel.add(new JLabel("Info " + nombre));
+        infoPanel.add(new JLabel("Id :" + atkInfo[0]));
+        infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(atkInfo[1])));
+        infoPanel.add(new JLabel("Nivel: " + atkInfo[2]));
+        infoPanel.add(new JLabel("Exp: " + atkInfo[3]));
+        infoPanel.add(new JLabel("Estado: " + pokemonStatus.get(atkInfo[4])));
+        infoPanel.add(new JLabel("Hp: " + atkInfo[5] + " / " + atkInfo[6]));
+        infoPanel.add(new JLabel("Ataque Fisico: " + atkInfo[7]));
+        infoPanel.add(new JLabel("Defensa Fisica: " + atkInfo[8]));
+        infoPanel.add(new JLabel("Ataque Especial: " + atkInfo[9]));
+        infoPanel.add(new JLabel("Defensa Especial: " + atkInfo[10]));
+        infoPanel.add(new JLabel("Velocidad: " + atkInfo[11]));
+
+        return infoPanel; 
+    }
+
+    private JPanel infoDefPokemon(){
+        JPanel infoPanel = new JPanel(new GridLayout(12,1));
+        String nombre = pokemonNames.get(defInfo[0]);
+        infoPanel.add(new JLabel("Info " + nombre));
+        infoPanel.add(new JLabel("Id :" + defInfo[0]));
+        infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(defInfo[1])));
+        infoPanel.add(new JLabel("Nivel: " + defInfo[2]));
+        infoPanel.add(new JLabel("Exp: " + defInfo[3]));
+        infoPanel.add(new JLabel("Estado: " + pokemonStatus.get(defInfo[4])));
+        infoPanel.add(new JLabel("Hp: " + defInfo[5] + " / " + defInfo[6]));
+        infoPanel.add(new JLabel("Ataque Fisico: " + defInfo[7]));
+        infoPanel.add(new JLabel("Defensa Fisica: " + defInfo[8]));
+        infoPanel.add(new JLabel("Ataque Especial: " + defInfo[9]));
+        infoPanel.add(new JLabel("Defensa Especial: " + defInfo[10]));
+        infoPanel.add(new JLabel("Velocidad: " + defInfo[11]));
+
+        return infoPanel; 
+    }
+
+    private void refreshDisplay(){
+        displayPanel.removeAll();
+        displayPanel.add(infoAtkPokemon(), BorderLayout.WEST);
+        displayPanel.add(addImage(), BorderLayout.CENTER);
+        displayPanel.add(infoDefPokemon(), BorderLayout.EAST);
+        displayPanel.revalidate();
+        displayPanel.repaint();
     }
 
     //////////////////////////////////////////////////////////////////////////////////////

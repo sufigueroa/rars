@@ -98,14 +98,30 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private void initializePokemon(){
-        pokemonTypes.put(0, "Planta");
+        pokemonTypes.put(0, "Normal");
         pokemonTypes.put(1, "Fuego");
         pokemonTypes.put(2, "Agua");
+        pokemonTypes.put(3, "Electrico");
+        pokemonTypes.put(4, "Planta");
+        pokemonTypes.put(5, "Hielo");
+        pokemonTypes.put(6, "Pelea");
+        pokemonTypes.put(7, "Veneno");
+        pokemonTypes.put(8, "Bicho");
+        pokemonTypes.put(9, "Dragon");
+        pokemonTypes.put(10, "Volador");
+        pokemonTypes.put(11, "Tierra");
+        pokemonTypes.put(12, "Roca");
+        pokemonTypes.put(13, "Fantasma");
+        pokemonTypes.put(14, "Psiquico");
 
         pokemonStatus.put(0, "Saludable");
         pokemonStatus.put(1, "Envenenado");
         pokemonStatus.put(2, "Dormido");
-        pokemonStatus.put(3, "Desmayado");
+        pokemonStatus.put(3, "Paralizado");
+        pokemonStatus.put(4, "Quemado");
+        pokemonStatus.put(5, "Congelado");
+        pokemonStatus.put(6, "Confundido");
+        pokemonStatus.put(7, "Desmayado");
 
         pokemonNames.put(1, "Bulbasaur");
         pokemonNames.put(2, "Ivysaur");
@@ -207,6 +223,57 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         pokemonNames.put(98, "Krabby");
         pokemonNames.put(99, "Kingler");
         pokemonNames.put(100, "Voltorb");
+        pokemonNames.put(101, "Electrode");
+        pokemonNames.put(102, "Exeggcute");
+        pokemonNames.put(103, "Exeggutor");
+        pokemonNames.put(104, "Cubone");
+        pokemonNames.put(105, "Marowak");
+        pokemonNames.put(106, "Hitmonlee");
+        pokemonNames.put(107, "Hitmonchan");
+        pokemonNames.put(108, "Lickitung");
+        pokemonNames.put(109, "Koffing");
+        pokemonNames.put(110, "Weezing");
+        pokemonNames.put(111, "Rhyhorn");
+        pokemonNames.put(112, "Rhydon");
+        pokemonNames.put(113, "Chansey");
+        pokemonNames.put(114, "Tangela");
+        pokemonNames.put(115, "Kangaskhan");
+        pokemonNames.put(116, "Horsea");
+        pokemonNames.put(117, "Seadra");
+        pokemonNames.put(118, "Goldeen");
+        pokemonNames.put(119, "Seaking");
+        pokemonNames.put(120, "Staryu");
+        pokemonNames.put(121, "Starmie");
+        pokemonNames.put(122, "Mr.Mime");
+        pokemonNames.put(123, "Scyther");
+        pokemonNames.put(124, "Jynx");
+        pokemonNames.put(125, "Electabuzz");
+        pokemonNames.put(126, "Magmar");
+        pokemonNames.put(127, "Pinsir");
+        pokemonNames.put(128, "Tauros");
+        pokemonNames.put(129, "Magikarp");
+        pokemonNames.put(130, "Gyarados");
+        pokemonNames.put(131, "Lapras");
+        pokemonNames.put(132, "Ditto");
+        pokemonNames.put(133, "Eevee");
+        pokemonNames.put(134, "Vaporeon");
+        pokemonNames.put(135, "Jolteon");
+        pokemonNames.put(136, "Flareon");
+        pokemonNames.put(137, "Porygon");
+        pokemonNames.put(138, "Omanyte");
+        pokemonNames.put(139, "Omastar");
+        pokemonNames.put(140, "Kabuto");
+        pokemonNames.put(141, "Kabutops");
+        pokemonNames.put(142, "Aerodactyl");
+        pokemonNames.put(143, "Snorlax");
+        pokemonNames.put(144, "Articuno");
+        pokemonNames.put(145, "Zapdos");
+        pokemonNames.put(146, "Moltres");
+        pokemonNames.put(147, "Dratini");
+        pokemonNames.put(148, "Dragonair");
+        pokemonNames.put(149, "Dragonite");
+        pokemonNames.put(150, "Mewtwo");
+        pokemonNames.put(151, "Mew");
     }
 
     // Se definen los valores de los registros

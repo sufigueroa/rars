@@ -82,7 +82,7 @@ pidgey:
 			11	# Ataque
 			10	# Defensa
 			11	# Ataque Especial
-			12	# Defensa Especial
+			255	# Defensa Especial
 			10	# Velocidad
 			
 butterfree:

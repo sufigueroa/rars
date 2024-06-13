@@ -30,6 +30,14 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 
 
+class PrettyJLabel extends JLabel{
+    public PrettyJLabel(String string, int fontSize){
+        super(string);
+        this.setFont(new Font(Font.MONOSPACED, Font.BOLD, fontSize));
+    }
+}
+
+
 public class PokemonGraphics extends AbstractToolAndApplication {
 
     private static String version = "Version 1.0 (Susana Figueroa)";
@@ -37,7 +45,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private static String displayPanelTitle, infoPanelTitle;
     private static char VT_FILL = ' ';  // fill character for virtual terminal (random access mode)
 
-    public static Dimension preferredTextAreaDimension = new Dimension(1000, 250);
     private static Insets textAreaInsets = new Insets(4, 4, 4, 4);
 
     // Whether or not display position is sequential (JTextArea append)
@@ -61,8 +68,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     public HashMap<Integer, String> pokemonNames = new HashMap<Integer, String>();
     public HashMap<Integer, String> pokemonTypes = new HashMap<Integer, String>();
     public HashMap<Integer, String> pokemonStatus = new HashMap<Integer, String>();
+    public HashMap<Integer, String> pokemonBackgrounds = new HashMap<Integer, String>();
+    public HashMap<Integer, String> pokemonWeather = new HashMap<Integer, String>();
 
-    public static int BATTLE_STATUS;     // Registro de estado del primer pokemon
+    public static int BATTLE_STATUS;        // Registro de estado de la batalla
+    public static int BATTLE_COMMAND;       // Registro de comando de la batalla
     public static int POKEMON_1_STATUS;     // Registro de estado del primer pokemon
     public static int POKEMON_1_COMMAND;    // Registro de comandos del primer pokemon
     public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
@@ -71,9 +81,18 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private int[] atkInfo = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     private int[] defInfo = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+    // Battle information
+    private int idBattle = 0;
+    private int idTurn = 0;
+    private int idBackground = 0;
+    private int idWeather = 0;
+    private int durationWeather = 0;
+    private int battleInitialize = 0;           // La batalla esta inicializada?
+    private int battleFinished = 0;           // La batalla esta inicializada?
+    private int winner = 0;           // La batalla esta inicializada?
+
     private int intCommand;                 // Numero del comando a ejecutar
     private int intStatus;                  // Numero del estado
-    private int battleInitialize = 0;           // La batalla esta inicializada?
     
     String pathPokemons = "./src/images/pokemon/";
     private int poke_def_x = 165;
@@ -100,6 +119,21 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private void initializePokemon(){
+        pokemonBackgrounds.put(0, "Pastizal");
+        pokemonBackgrounds.put(1, "Embrujado");
+        pokemonBackgrounds.put(2, "Pastizal");
+        pokemonBackgrounds.put(3, "Pastizal");
+        pokemonBackgrounds.put(4, "Pastizal");
+        pokemonBackgrounds.put(5, "Pastizal");
+        pokemonBackgrounds.put(6, "Pastizal");
+        pokemonBackgrounds.put(7, "Pastizal");
+        
+        pokemonWeather.put(0, " ");
+        pokemonWeather.put(1, "Soleado");
+        pokemonWeather.put(2, "Lluvioso");
+        pokemonWeather.put(3, "Tormenta de Arena");
+        pokemonWeather.put(4, "Granizo");
+
         pokemonTypes.put(0, "Normal");
         pokemonTypes.put(1, "Fuego");
         pokemonTypes.put(2, "Agua");
@@ -280,11 +314,12 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     // Se definen los valores de los registros
     protected void initializePreGUI() {
-        BATTLE_STATUS = Memory.memoryMapBaseAddress; //0xffff0000; // keyboard Ready in low-order bit
-        POKEMON_1_STATUS = Memory.memoryMapBaseAddress + 4; //0xffff0000; // keyboard Ready in low-order bit
-        POKEMON_1_COMMAND = Memory.memoryMapBaseAddress + 8; //0xffff0004; // keyboard character in low-order byte
-        POKEMON_2_STATUS = Memory.memoryMapBaseAddress + 12; //0xffff0008; // display Ready in low-order bit
-        POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 16; //0xffff000c; // display character in low-order byte
+        BATTLE_STATUS = Memory.memoryMapBaseAddress;            //0xffff0000; 
+        BATTLE_COMMAND = Memory.memoryMapBaseAddress + 4;        //0xffff0004;
+        POKEMON_1_STATUS = Memory.memoryMapBaseAddress + 8;     //0xffff0008;
+        POKEMON_1_COMMAND = Memory.memoryMapBaseAddress + 12;   //0xffff000C;
+        POKEMON_2_STATUS = Memory.memoryMapBaseAddress + 16;    //0xffff0010;
+        POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 20;   //0xffff0014;
         displayPanelTitle = "DISPLAY";
         infoPanelTitle = "Combat Log";
         initializePokemon();
@@ -292,13 +327,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     // Se vigilan los cambios a las direcciones de los registros
     protected void addAsObserver() {
-        addAsObserver(BATTLE_STATUS, BATTLE_STATUS);
+        addAsObserver(BATTLE_COMMAND, BATTLE_COMMAND);
         addAsObserver(POKEMON_1_COMMAND, POKEMON_1_COMMAND);
         addAsObserver(POKEMON_2_COMMAND, POKEMON_2_COMMAND);
         addAsObserver(POKEMON_1_STATUS, POKEMON_1_STATUS);
         addAsObserver(POKEMON_2_STATUS, POKEMON_2_STATUS);
-
-        addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
     }
 
     /**
@@ -326,12 +359,42 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     protected void processRISCVUpdate(Observable memory, AccessNotice accessNotice) {
         MemoryAccessNotice notice = (MemoryAccessNotice) accessNotice;
 
-        if (notice.getAddress() == BATTLE_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
+        if (notice.getAddress() == BATTLE_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
-            if ((intCommand & 0x00000001) == 1){
-                battleInitialize = 1;
-                refreshDisplay();
+            int command = intCommand & 0x0000000F;
+            if (command == 1){                  // Iniciar Batalla
+                initializeBattle();
+            } else if (command == 2 && battleInitialize == 0){
+                idBackground = (intCommand & 0x00000070) >> 4;
+            } else if (command == 3){           // Setear Clima
+                idWeather = (intCommand & 0x00000070) >> 4;
+                durationWeather = (intCommand & 0x00000380) >> 7;
+                if (battleInitialize > 0){
+                    logDisplay.append("El clima " + pokemonWeather.get(idWeather) + "ha comenzado. Turnos restantes: " + durationWeather + "\n");
+                }
+            } else if (command == 4){           // Finalizar Turno
+                idTurn = idTurn + 1;
+                if (idWeather != 0){
+                    durationWeather = durationWeather - 1;
+                    if (durationWeather < 1){
+                        logDisplay.append("Clima " + pokemonWeather.get(idWeather) + " ha finalizado.\n");
+                        idWeather = 0;
+                    } else {
+                        logDisplay.append("Clima " + pokemonWeather.get(idWeather) + ". Turnos restantes: " + durationWeather + "\n");
+                    }
+                }
+            } else if (command == 5){           // Finalizar Batalla
+                battleFinished = 1;
+                winner = (intCommand & 0x00000010) >> 4;
+                logDisplay.append("La batalla " + idBattle + " ha finalizado.\n");
+                if (winner == 1){
+                    logDisplay.append("Has ganado!!!\n");
+                } else {
+                    logDisplay.append("Has perdido :(\n");
+                }
             }
+            refreshStatusBattle();
+            refreshDisplay();
         } else if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             getCommand(intCommand, 1);
@@ -359,6 +422,29 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                 setHealth(intStatus, 2);
             }
         }
+    }
+
+    private void refreshStatusBattle(){
+        int battleStatusValue = 0;
+        battleStatusValue = battleStatusValue + battleInitialize;
+        battleStatusValue = battleStatusValue + (battleFinished << 1);
+        battleStatusValue = battleStatusValue + (winner << 2);
+        battleStatusValue = battleStatusValue + (idBackground << 3);
+        battleStatusValue = battleStatusValue + (idWeather << 6);
+        battleStatusValue = battleStatusValue + (durationWeather << 9);
+        battleStatusValue = battleStatusValue + (idTurn << 12);
+        battleStatusValue = battleStatusValue + (idBattle << 18);
+        setMemory(BATTLE_STATUS, battleStatusValue);
+    }
+
+    private void initializeBattle(){
+        battleFinished = 0;
+        winner = 0;
+        idBattle = idBattle + 1;
+        idTurn = idTurn + 1;
+        battleInitialize = 1;
+        logDisplay.append("Se ha iniciado una nueva batalla pokemon\n");
+        refreshDisplay();
     }
 
     private void setPokemon(int address, int intPokemon) {
@@ -526,14 +612,20 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         logDisplay.requestFocusInWindow();
     }
 
-    /**
-     * Method to reset counters and display when the Reset button selected.
-     * Overrides inherited method that does nothing.
-     */
+    private void resetBattle(){
+        battleInitialize = 0;
+        idBattle = 0;
+        idTurn = 0;
+        idWeather = 0;
+        durationWeather = 0;
+        battleFinished = 0; 
+        winner = 0; 
+    }
+
     protected void reset() {
         displayRandomAccessMode = false;
-        battleInitialize = 0;
-        logDisplay.setText("Se ha iniciado una nueva batalla pokemon\n");
+        resetBattle();
+        logDisplay.setText("");
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
         refreshDisplay();
         logDisplay.requestFocusInWindow();
@@ -605,7 +697,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private BufferedImage mergeImages(){
         BufferedImage combined;
         try {
-            BufferedImage background = ImageIO.read(new File(pathPokemons, "grass_background.png"));
+            String idBack = "background/" + String.format("%03d", idBackground) + ".png";
+            BufferedImage background = ImageIO.read(new File(pathPokemons, idBack));
 
             // create the new image, canvas size is the max. of both image sizes
             int w = background.getWidth();
@@ -641,7 +734,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private JPanel buildDisplay(){
-        displayPanel = new JPanel(new FlowLayout());
+        displayPanel = new JPanel(new BorderLayout());
         TitledBorder tb = new TitledBorder(displayPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
         displayPanel.setBorder(tb);
@@ -652,7 +745,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JPanel infoPokemonEmpty(){
         JPanel infoPanel = new JPanel(new GridLayout(13,1));
         JLabel nameLabel = new JLabel(" ");
-        nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
         infoPanel.add(nameLabel);
         infoPanel.add(new JLabel(" "));
         infoPanel.add(new JLabel(" "));
@@ -676,52 +769,88 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             nombre = pokemonNames.get(pokemon[0]);
         }
         JLabel nameLabel = new JLabel("Info " + nombre);
-        nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
         infoPanel.add(nameLabel);
-        infoPanel.add(new JLabel("Id :" + pokemon[0]));
-        infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(pokemon[1])));
-        infoPanel.add(new JLabel("Nivel: " + pokemon[2]));
-        infoPanel.add(new JLabel("Exp: " + pokemon[3]));
-        infoPanel.add(new JLabel("Estado: " + pokemonStatus.get(pokemon[4])));
-        infoPanel.add(new JLabel("Hp: " + pokemon[5] + " / " + pokemon[6]));
-        infoPanel.add(new JLabel("Ataque Fisico: " + pokemon[7]));
-        infoPanel.add(new JLabel("Defensa Fisica: " + pokemon[8]));
-        infoPanel.add(new JLabel("Ataque Especial: " + pokemon[9]));
-        infoPanel.add(new JLabel("Defensa Especial: " + pokemon[10]));
-        infoPanel.add(new JLabel("Velocidad: " + pokemon[11]));
+        infoPanel.add(new PrettyJLabel("Id :" + pokemon[0], 11));
+        infoPanel.add(new PrettyJLabel("Tipo: " + pokemonTypes.get(pokemon[1]), 11));
+        infoPanel.add(new PrettyJLabel("Nivel: " + pokemon[2], 11));
+        infoPanel.add(new PrettyJLabel("Exp: " + pokemon[3], 11));
+        infoPanel.add(new PrettyJLabel("Estado: " + pokemonStatus.get(pokemon[4]), 11));
+        infoPanel.add(new PrettyJLabel("Hp: " + pokemon[5] + " / " + pokemon[6], 11));
+        infoPanel.add(new PrettyJLabel("Ataque Fisico: " + pokemon[7], 11));
+        infoPanel.add(new PrettyJLabel("Defensa Fisica: " + pokemon[8], 11));
+        infoPanel.add(new PrettyJLabel("Ataque Especial: " + pokemon[9], 11));
+        infoPanel.add(new PrettyJLabel("Defensa Especial: " + pokemon[10], 11));
+        infoPanel.add(new PrettyJLabel("Velocidad: " + pokemon[11], 11));
 
         return infoPanel; 
     }
 
+    private JPanel buildBattleInfoDisplay(){
+        JPanel infoPanel = new JPanel(new GridLayout(2,1));
+        JPanel infoBattlePanel = new JPanel(new GridLayout(1,4));
+        JPanel weatherPanel = new JPanel(new GridLayout(1,2));
+
+        JLabel battleLabel = new PrettyJLabel("Batalla: " + idBattle, 14);
+        infoBattlePanel.add(battleLabel);
+
+        JLabel turnLabel = new PrettyJLabel("Turno: " + idTurn, 14);
+        infoBattlePanel.add(turnLabel);
+
+        JLabel backgroundLabel = new PrettyJLabel("Lugar: " + pokemonBackgrounds.get(idBackground), 14);
+        infoBattlePanel.add(backgroundLabel);
+
+        JLabel weatherLabel = new PrettyJLabel("Clima: " + pokemonWeather.get(idWeather), 14);
+        weatherPanel.add(weatherLabel);
+        weatherPanel.add(new PrettyJLabel("  " + " o".repeat(durationWeather), 12));
+        infoBattlePanel.add(weatherPanel);
+
+        infoPanel.add(infoBattlePanel);
+        infoPanel.add(new JLabel(" "));
+        return infoPanel;
+    }
+
+    private JPanel buildCentralPanel(){
+        JPanel infoDisplayPanel = new JPanel(new GridLayout(1,3));
+        JPanel infoLeftPanel = new JPanel(new GridLayout(1,2));
+        JPanel infoRightPanel = new JPanel(new GridLayout(1,2));
+
+        if (battleInitialize == 1){
+            infoLeftPanel.add(infoPokemon(atkInfo), BorderLayout.WEST);
+        } else {
+            infoLeftPanel.add(infoPokemonEmpty(), BorderLayout.WEST);
+        }
+        infoLeftPanel.add(Box.createHorizontalStrut(10));
+        infoDisplayPanel.add(infoLeftPanel);
+
+        infoDisplayPanel.add(addImage(), BorderLayout.CENTER);
+
+        infoRightPanel.add(Box.createHorizontalStrut(10));
+        if (battleInitialize == 1){
+            infoRightPanel.add(infoPokemon(defInfo), BorderLayout.EAST);
+        } else {
+            infoRightPanel.add(infoPokemonEmpty(), BorderLayout.EAST);
+        }
+        infoDisplayPanel.add(infoRightPanel);
+        return infoDisplayPanel;
+    }
+
     private void refreshDisplay(){
         displayPanel.removeAll();
-        if (battleInitialize == 1){
-            displayPanel.add(infoPokemon(atkInfo), BorderLayout.WEST);
-        } else {
-            displayPanel.add(infoPokemonEmpty(), BorderLayout.WEST);
-        }
-        displayPanel.add(Box.createHorizontalStrut(50));
-        displayPanel.add(addImage(), BorderLayout.CENTER);
-        displayPanel.add(Box.createHorizontalStrut(50));
-        if (battleInitialize == 1){
-            displayPanel.add(infoPokemon(defInfo), BorderLayout.EAST);
-        } else {
-            displayPanel.add(infoPokemonEmpty(), BorderLayout.WEST);
-        }
+        displayPanel.add(buildBattleInfoDisplay(), BorderLayout.NORTH);
+        displayPanel.add(buildCentralPanel());
         displayPanel.revalidate();
         displayPanel.repaint();
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////
-    // UI components and layout for lower part of GUI, where simulated keyboard is located.
     private JComponent buildInfo() {
         logPanel = new JPanel(new BorderLayout());
-        logDisplay = new JTextArea("Se ha iniciado una nueva batalla pokemon\n");
+        logDisplay = new JTextArea("");
         logDisplay.setEditable(false);
         logDisplay.setFont(defaultFont);
         logDisplay.setMargin(textAreaInsets);
         logAccepterScrollPane = new JScrollPane(logDisplay);
-        logAccepterScrollPane.setPreferredSize(new Dimension(700, 100));
+        logAccepterScrollPane.setPreferredSize(new Dimension(900, 100));
         logPanel.add(logAccepterScrollPane);
         TitledBorder tb = new TitledBorder(infoPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
@@ -729,42 +858,12 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         return logPanel;
     }
 
-    ////////////////////////////////////////////////////////////////////
-    // update the MMIO Control register memory cell. We will delegate.
-    private void updateMMIOControl(int addr, int intValue) {
-        updateMMIOControlAndData(addr, intValue, 0, 0, true);
-    }
-
-    /////////////////////////////////////////////////////////////////////
-    // update the MMIO Control and Data register pair -- 2 memory cells. We will delegate.
-    private void updateMMIOControlAndData(int controlAddr, int controlValue, int dataAddr, int dataValue) {
-        updateMMIOControlAndData(controlAddr, controlValue, dataAddr, dataValue, false);
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // This one does the work: update the MMIO Control and optionally the Data register as well
-    // NOTE: last argument TRUE means update only the MMIO Control register; FALSE means update both Control and Data.
-    private void updateMMIOControlAndData(int controlAddr, int controlValue, int dataAddr, int dataValue, boolean controlOnly) {
-        if (!this.isBeingUsedAsATool || (this.isBeingUsedAsATool && connectButton.isConnected())) {
-            Globals.memoryAndRegistersLock.lock();
-            try {
-                try {
-                    Globals.memory.setRawWord(controlAddr, controlValue);
-                    if (!controlOnly) Globals.memory.setRawWord(dataAddr, dataValue);
-                } catch (AddressErrorException aee) {
-                    System.out.println("Tool author specified incorrect MMIO address!" + aee);
-                    System.exit(0);
-                }
-            } finally {
-                Globals.memoryAndRegistersLock.unlock();
-            }
-            // HERE'S A HACK!!  Want to immediately display the updated memory value in MARS
-            // but that code was not written for event-driven update (e.g. Observer) --
-            // it was written to poll the memory cells for their values.  So we force it to do so.
-
-            if (Globals.getGui() != null && Globals.getGui().getMainPane().getExecutePane().getTextSegmentWindow().getCodeHighlighting()) {
-                Globals.getGui().getMainPane().getExecutePane().getDataSegmentWindow().updateValues();
-            }
+    private void setMemory(int addr, int value){
+        try {
+            Globals.memory.setRawWord(addr, value);
+        } catch (AddressErrorException aee) {
+            System.out.println("Me equivoque :(" + aee);
+            System.exit(0);
         }
     }
 }

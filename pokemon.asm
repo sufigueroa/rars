@@ -10,31 +10,11 @@ beq zero, zero, _start
 
 
 _start:
-la a0, squirtle
-jal ra, _setExpVector
-sw a0, 0xffff0000, t1
-la a0, squirtle
-jal ra, _setHealthVector
-sw a0, 0xffff0000, t1
+la a0, butterfree
+sw a0, 0xffff0004, t1
 
+la a0, pidgey
+sw a0, 0xffff000C, t1
 
-la a0, caterpie
-jal ra, _setExpVector
-sw a0, 0xffff0008, t1
-la a0, caterpie
-jal ra, _setHealthVector
-sw a0, 0xffff0008, t1
-
-la a0, caterpie
 addi t0, zero, 1
-sw t0, 16(a0)
-jal ra, _setHealthVector
-sw a0, 0xffff0008, t1
-
-
-la a0, caterpie
-addi t0, zero, 1
-sw t0, 20(a0)
-jal ra, _setHealthVector
-sw a0, 0xffff0008, t1
-
+sw t0, 0xffff0000, t1

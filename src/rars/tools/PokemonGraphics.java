@@ -62,16 +62,18 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     public HashMap<Integer, String> pokemonTypes = new HashMap<Integer, String>();
     public HashMap<Integer, String> pokemonStatus = new HashMap<Integer, String>();
 
+    public static int BATTLE_STATUS;     // Registro de estado del primer pokemon
     public static int POKEMON_1_STATUS;     // Registro de estado del primer pokemon
     public static int POKEMON_1_COMMAND;    // Registro de comandos del primer pokemon
     public static int POKEMON_2_STATUS;     // Registro de estado del segundo pokemon
     public static int POKEMON_2_COMMAND;    // Registro de comandos del segundo pokemon
 
-    private int[] atkInfo = new int[]{1, 0, 5, 0, 0, 21, 21, 11, 8, 13, 13, 11};
-    private int[] defInfo = new int[]{4, 1, 5, 0, 0, 20, 20, 12, 7, 10, 11, 13};
+    private int[] atkInfo = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    private int[] defInfo = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     private int intCommand;                 // Numero del comando a ejecutar
     private int intStatus;                  // Numero del estado
+    private int battleInitialize = 0;           // La batalla esta inicializada?
     
     String pathPokemons = "./src/images/pokemon/";
     private int poke_def_x = 165;
@@ -278,10 +280,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     // Se definen los valores de los registros
     protected void initializePreGUI() {
-        POKEMON_1_STATUS = Memory.memoryMapBaseAddress; //0xffff0000; // keyboard Ready in low-order bit
-        POKEMON_1_COMMAND = Memory.memoryMapBaseAddress + 4; //0xffff0004; // keyboard character in low-order byte
-        POKEMON_2_STATUS = Memory.memoryMapBaseAddress + 8; //0xffff0008; // display Ready in low-order bit
-        POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 12; //0xffff000c; // display character in low-order byte
+        BATTLE_STATUS = Memory.memoryMapBaseAddress; //0xffff0000; // keyboard Ready in low-order bit
+        POKEMON_1_STATUS = Memory.memoryMapBaseAddress + 4; //0xffff0000; // keyboard Ready in low-order bit
+        POKEMON_1_COMMAND = Memory.memoryMapBaseAddress + 8; //0xffff0004; // keyboard character in low-order byte
+        POKEMON_2_STATUS = Memory.memoryMapBaseAddress + 12; //0xffff0008; // display Ready in low-order bit
+        POKEMON_2_COMMAND = Memory.memoryMapBaseAddress + 16; //0xffff000c; // display character in low-order byte
         displayPanelTitle = "DISPLAY";
         infoPanelTitle = "Combat Log";
         initializePokemon();
@@ -289,6 +292,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     // Se vigilan los cambios a las direcciones de los registros
     protected void addAsObserver() {
+        addAsObserver(BATTLE_STATUS, BATTLE_STATUS);
         addAsObserver(POKEMON_1_COMMAND, POKEMON_1_COMMAND);
         addAsObserver(POKEMON_2_COMMAND, POKEMON_2_COMMAND);
         addAsObserver(POKEMON_1_STATUS, POKEMON_1_STATUS);
@@ -321,7 +325,14 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     @Override
     protected void processRISCVUpdate(Observable memory, AccessNotice accessNotice) {
         MemoryAccessNotice notice = (MemoryAccessNotice) accessNotice;
-        if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
+
+        if (notice.getAddress() == BATTLE_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
+            intCommand = notice.getValue();
+            if ((intCommand & 0x00000001) == 1){
+                battleInitialize = 1;
+                refreshDisplay();
+            }
+        } else if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             getCommand(intCommand, 1);
         } else if (notice.getAddress() == POKEMON_2_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
@@ -329,6 +340,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             getCommand(intCommand, 2);
         } else if (notice.getAddress() == POKEMON_1_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
             intStatus = notice.getValue();
+            setPokemon(intStatus, 1);
+    
             int command = (int) (intStatus & 0xF0000000) >> 28;
             if (command == 1){
                 setExperience(intStatus, 1);
@@ -337,12 +350,41 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             }
         } else if (notice.getAddress() == POKEMON_2_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
             intStatus = notice.getValue();
+            setPokemon(intStatus, 2);
+
             int command = (int) (intStatus & 0xF0000000) >> 28;
             if (command == 1){
                 setExperience(intStatus, 2);
             } else if (command == 2){
                 setHealth(intStatus, 2);
             }
+        }
+    }
+
+    private void setPokemon(int address, int intPokemon) {
+        int[] pokemon;
+        if (intPokemon == 1){
+            pokemon = atkInfo;
+        } else {
+            pokemon = defInfo;
+        }
+        try {
+            pokemon[0] = Globals.memory.getWordNoNotify(address);
+            pokemon[1] = Globals.memory.getWordNoNotify(address + 4);
+            pokemon[2] = Globals.memory.getWordNoNotify(address + 8);
+            pokemon[3] = Globals.memory.getWordNoNotify(address + 12);
+            pokemon[4] = Globals.memory.getWordNoNotify(address + 16);
+            pokemon[5] = Globals.memory.getWordNoNotify(address + 20);
+            pokemon[6] = Globals.memory.getWordNoNotify(address + 24);
+            pokemon[7] = Globals.memory.getWordNoNotify(address + 28);
+            pokemon[8] = Globals.memory.getWordNoNotify(address + 32);
+            pokemon[9] = Globals.memory.getWordNoNotify(address + 36);
+            pokemon[10] = Globals.memory.getWordNoNotify(address + 40);
+            pokemon[11] = Globals.memory.getWordNoNotify(address + 44);
+            refreshDisplay();
+        } catch (AddressErrorException aee) {
+            System.out.println("Tool author specified incorrect MMIO address!" + aee);
+            System.exit(0);
         }
     }
 
@@ -358,13 +400,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
         }
     }
-
-	// 		20	# HP Total
-	// 		12	# Ataque
-	// 		7	# Defensa
-	// 		10	# Ataque Especial
-	// 		11	# Defensa Especial
-	// 		13	# Velocidad
 
     private void setExperience(int intExp, int intPokemon) {
         int id      = (int) (intExp & 0x03FC0000) >> 18;
@@ -497,6 +532,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
      */
     protected void reset() {
         displayRandomAccessMode = false;
+        battleInitialize = 0;
         logDisplay.setText("Se ha iniciado una nueva batalla pokemon\n");
         ((TitledBorder) displayPanel.getBorder()).setTitle(displayPanelTitle);
         refreshDisplay();
@@ -569,11 +605,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private BufferedImage mergeImages(){
         BufferedImage combined;
         try {
-            String idAtk = "back/" + String.format("%03d", atkInfo[0]) + ".png";
-            String idDef = "front/" + String.format("%03d", defInfo[0]) + ".png";
             BufferedImage background = ImageIO.read(new File(pathPokemons, "grass_background.png"));
-            BufferedImage pokemon_atacante = ImageIO.read(new File(pathPokemons, idAtk));
-            BufferedImage pokemon_defensor = ImageIO.read(new File(pathPokemons, idDef));
 
             // create the new image, canvas size is the max. of both image sizes
             int w = background.getWidth();
@@ -583,8 +615,16 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             // paint both images, preserving the alpha channels
             Graphics g = combined.getGraphics();
             g.drawImage(background, 0, 0, null);
-            g.drawImage(pokemon_defensor, poke_def_x, poke_def_y, null);
-            g.drawImage(pokemon_atacante, poke_atk_x, poke_atk_y, null);
+            if (battleInitialize > 0 && atkInfo[0] > 0){
+                String idAtk = "back/" + String.format("%03d", atkInfo[0]) + ".png";
+                BufferedImage pokemon_atacante = ImageIO.read(new File(pathPokemons, idAtk));
+                g.drawImage(pokemon_atacante, poke_atk_x, poke_atk_y, null);
+            }
+            if (battleInitialize > 0 && defInfo[0] > 0){
+                String idDef = "front/" + String.format("%03d", defInfo[0]) + ".png";
+                BufferedImage pokemon_defensor = ImageIO.read(new File(pathPokemons, idDef));
+                g.drawImage(pokemon_defensor, poke_def_x, poke_def_y, null);
+            }
             g.dispose();
             // // Save as new image
             ImageIO.write(combined, "PNG", new File(pathPokemons, "temp.png"));
@@ -605,63 +645,69 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         TitledBorder tb = new TitledBorder(displayPanelTitle);
         tb.setTitleJustification(TitledBorder.CENTER);
         displayPanel.setBorder(tb);
-        displayPanel.add(infoAtkPokemon(), BorderLayout.WEST);
-        displayPanel.add(Box.createHorizontalStrut(50));
-        displayPanel.add(addImage(), BorderLayout.CENTER);
-        displayPanel.add(Box.createHorizontalStrut(50));
-        displayPanel.add(infoDefPokemon(), BorderLayout.EAST);
+        refreshDisplay();
         return displayPanel;
     }
 
-    private JPanel infoAtkPokemon(){
+    private JPanel infoPokemonEmpty(){
         JPanel infoPanel = new JPanel(new GridLayout(13,1));
-        String nombre = pokemonNames.get(atkInfo[0]);
-        JLabel nameLabel = new JLabel("Info " + nombre);
+        JLabel nameLabel = new JLabel(" ");
         nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
         infoPanel.add(nameLabel);
-        infoPanel.add(new JLabel("Id :" + atkInfo[0]));
-        infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(atkInfo[1])));
-        infoPanel.add(new JLabel("Nivel: " + atkInfo[2]));
-        infoPanel.add(new JLabel("Exp: " + atkInfo[3]));
-        infoPanel.add(new JLabel("Estado: " + pokemonStatus.get(atkInfo[4])));
-        infoPanel.add(new JLabel("Hp: " + atkInfo[5] + " / " + atkInfo[6]));
-        infoPanel.add(new JLabel("Ataque Fisico: " + atkInfo[7]));
-        infoPanel.add(new JLabel("Defensa Fisica: " + atkInfo[8]));
-        infoPanel.add(new JLabel("Ataque Especial: " + atkInfo[9]));
-        infoPanel.add(new JLabel("Defensa Especial: " + atkInfo[10]));
-        infoPanel.add(new JLabel("Velocidad: " + atkInfo[11]));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
+        infoPanel.add(new JLabel(" "));
 
         return infoPanel; 
     }
 
-    private JPanel infoDefPokemon(){
+    private JPanel infoPokemon(int[] pokemon){
         JPanel infoPanel = new JPanel(new GridLayout(13,1));
-        String nombre = pokemonNames.get(defInfo[0]);
+        String nombre = "";
+        if (pokemon[0] > 0){
+            nombre = pokemonNames.get(pokemon[0]);
+        }
         JLabel nameLabel = new JLabel("Info " + nombre);
         nameLabel.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
         infoPanel.add(nameLabel);
-        infoPanel.add(new JLabel("Id :" + defInfo[0]));
-        infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(defInfo[1])));
-        infoPanel.add(new JLabel("Nivel: " + defInfo[2]));
-        infoPanel.add(new JLabel("Exp: " + defInfo[3]));
-        infoPanel.add(new JLabel("Estado: " + pokemonStatus.get(defInfo[4])));
-        infoPanel.add(new JLabel("Hp: " + defInfo[5] + " / " + defInfo[6]));
-        infoPanel.add(new JLabel("Ataque Fisico: " + defInfo[7]));
-        infoPanel.add(new JLabel("Defensa Fisica: " + defInfo[8]));
-        infoPanel.add(new JLabel("Ataque Especial: " + defInfo[9]));
-        infoPanel.add(new JLabel("Defensa Especial: " + defInfo[10]));
-        infoPanel.add(new JLabel("Velocidad: " + defInfo[11]));
+        infoPanel.add(new JLabel("Id :" + pokemon[0]));
+        infoPanel.add(new JLabel("Tipo: " + pokemonTypes.get(pokemon[1])));
+        infoPanel.add(new JLabel("Nivel: " + pokemon[2]));
+        infoPanel.add(new JLabel("Exp: " + pokemon[3]));
+        infoPanel.add(new JLabel("Estado: " + pokemonStatus.get(pokemon[4])));
+        infoPanel.add(new JLabel("Hp: " + pokemon[5] + " / " + pokemon[6]));
+        infoPanel.add(new JLabel("Ataque Fisico: " + pokemon[7]));
+        infoPanel.add(new JLabel("Defensa Fisica: " + pokemon[8]));
+        infoPanel.add(new JLabel("Ataque Especial: " + pokemon[9]));
+        infoPanel.add(new JLabel("Defensa Especial: " + pokemon[10]));
+        infoPanel.add(new JLabel("Velocidad: " + pokemon[11]));
 
         return infoPanel; 
     }
 
     private void refreshDisplay(){
         displayPanel.removeAll();
-        displayPanel.add(infoAtkPokemon(), BorderLayout.WEST);
+        if (battleInitialize == 1){
+            displayPanel.add(infoPokemon(atkInfo), BorderLayout.WEST);
+        } else {
+            displayPanel.add(infoPokemonEmpty(), BorderLayout.WEST);
+        }
         displayPanel.add(Box.createHorizontalStrut(50));
         displayPanel.add(addImage(), BorderLayout.CENTER);
         displayPanel.add(Box.createHorizontalStrut(50));
-        displayPanel.add(infoDefPokemon(), BorderLayout.EAST);
+        if (battleInitialize == 1){
+            displayPanel.add(infoPokemon(defInfo), BorderLayout.EAST);
+        } else {
+            displayPanel.add(infoPokemonEmpty(), BorderLayout.WEST);
+        }
         displayPanel.revalidate();
         displayPanel.repaint();
     }

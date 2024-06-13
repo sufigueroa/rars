@@ -330,8 +330,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         addAsObserver(BATTLE_COMMAND, BATTLE_COMMAND);
         addAsObserver(POKEMON_1_COMMAND, POKEMON_1_COMMAND);
         addAsObserver(POKEMON_2_COMMAND, POKEMON_2_COMMAND);
-        addAsObserver(POKEMON_1_STATUS, POKEMON_1_STATUS);
-        addAsObserver(POKEMON_2_STATUS, POKEMON_2_STATUS);
     }
 
     /**
@@ -370,10 +368,16 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                 idWeather = (intCommand & 0x00000070) >> 4;
                 durationWeather = (intCommand & 0x00000380) >> 7;
                 if (battleInitialize > 0){
-                    logDisplay.append("El clima " + pokemonWeather.get(idWeather) + "ha comenzado. Turnos restantes: " + durationWeather + "\n");
+                    logDisplay.append("El clima " + pokemonWeather.get(idWeather) + " ha comenzado. Turnos restantes: " + durationWeather + "\n");
                 }
             } else if (command == 4){           // Finalizar Turno
                 idTurn = idTurn + 1;
+                if (atkInfo[4] == 1){
+                    logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha perdido vida por envenenamiento.\n");
+                }
+                if (defInfo[4] == 1){
+                    logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha perdido vida por envenenamiento.\n");
+                }
                 if (idWeather != 0){
                     durationWeather = durationWeather - 1;
                     if (durationWeather < 1){
@@ -397,29 +401,75 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             refreshDisplay();
         } else if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
-            getCommand(intCommand, 1);
+            int command = intCommand & 0x0000000F;
+            if (command == 1){
+                if (battleInitialize == 1){
+                    System.out.println("La batalla ya comenzo! No se puede inicializar los pokemones\n");
+                } else {
+                    try {
+                        int addressPokemon = Globals.memory.getWordNoNotify(POKEMON_1_STATUS);
+                        setPokemon(addressPokemon, 1);
+                    } catch (AddressErrorException aee) {
+                    }
+                }
+            } else if (command == 2){
+                int newStatus = (intCommand & 0x00000070) >> 4;
+                if (newStatus != atkInfo[4]){
+                    atkInfo[4] = newStatus;
+                    if (newStatus == 0){
+                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha sido curado! :D\n");
+                    } else if (newStatus == 1){
+                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha sido envenenado! :o\n");
+                    } else if (newStatus == 2){
+                        logDisplay.append("ZzzZZzz... El pokemon " + pokemonNames.get(atkInfo[0]) + " se ha quedado dormido.\n");
+                    } else if (newStatus == 3){
+                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha quedado paralizado..\n");
+                    } else if (newStatus == 4){
+                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " se ha quemado!!!\n");
+                    } else if (newStatus == 5){
+                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " esta congelado.\n");
+                    } else if (newStatus == 6){
+                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " esta confundido.\n");
+                    } else if (newStatus == 7){
+                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " se ha desmayado! :(\n");
+                    }
+                }
+            }
         } else if (notice.getAddress() == POKEMON_2_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
-            getCommand(intCommand, 2);
-        } else if (notice.getAddress() == POKEMON_1_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
-            intStatus = notice.getValue();
-            setPokemon(intStatus, 1);
-    
-            int command = (int) (intStatus & 0xF0000000) >> 28;
+            int command = intCommand & 0x0000000F;
             if (command == 1){
-                setExperience(intStatus, 1);
+                if (battleInitialize == 1){
+                    System.out.println("La batalla ya comenzo! No se puede inicializar los pokemones\n");
+                } else {
+                    try {
+                        int addressPokemon = Globals.memory.getWordNoNotify(POKEMON_2_STATUS);
+                        setPokemon(addressPokemon, 2);
+                    } catch (AddressErrorException aee) {
+                    }
+                }
             } else if (command == 2){
-                setHealth(intStatus, 1);
-            }
-        } else if (notice.getAddress() == POKEMON_2_STATUS && notice.getAccessType() == AccessNotice.WRITE) {
-            intStatus = notice.getValue();
-            setPokemon(intStatus, 2);
-
-            int command = (int) (intStatus & 0xF0000000) >> 28;
-            if (command == 1){
-                setExperience(intStatus, 2);
-            } else if (command == 2){
-                setHealth(intStatus, 2);
+                int newStatus = (intCommand & 0x00000070) >> 4;
+                if (newStatus != defInfo[4]){
+                    defInfo[4] = newStatus;
+                    if (newStatus == 0){
+                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha sido curado! :D\n");
+                    } else if (newStatus == 1){
+                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha sido envenenado! :o\n");
+                    } else if (newStatus == 2){
+                        logDisplay.append("ZzzZZzz... El pokemon " + pokemonNames.get(defInfo[0]) + " se ha quedado dormido.\n");
+                    } else if (newStatus == 3){
+                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha quedado paralizado..\n");
+                    } else if (newStatus == 4){
+                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " se ha quemado!!!\n");
+                    } else if (newStatus == 5){
+                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " esta congelado.\n");
+                    } else if (newStatus == 6){
+                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " esta confundido.\n");
+                    } else if (newStatus == 7){
+                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " se ha desmayado! :(\n");
+                    }
+                }
             }
         }
     }
@@ -484,126 +534,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
         } else if (command == 4){
             logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
-        }
-    }
-
-    private void setExperience(int intExp, int intPokemon) {
-        int id      = (int) (intExp & 0x03FC0000) >> 18;
-        int type    = (int) (intExp & 0x0003C000) >> 14;
-        int level   = (int) (intExp & 0x00003F80) >> 7;
-        int exp     = (int) (intExp & 0x0000007F) >> 0;
-        String nombre = pokemonNames.get(id);
-
-        int[] pokemon;
-        if (id < 1){
-            return;
-        }
-        if (intPokemon == 1){
-            pokemon = atkInfo;
-        } else {
-            pokemon = defInfo;
-        }
-        
-        if (pokemon[2] != level){
-            logDisplay.append("Enhorabuena! " + pokemonNames.get(pokemon[0]) + " ha subido de nivel!\n");
-        }
-        if (pokemon[0] != id){
-            logDisplay.append("Enhorabuena! " + pokemonNames.get(pokemon[0]) + " ha evolucionado a " + nombre + "!\n");
-        }
-
-        pokemon[0] = id;
-        pokemon[1] = type;
-        pokemon[2] = level;
-        pokemon[3] = exp;
-        refreshDisplay();
-    }
-
-    private void setHealth(int intHealth, int intPokemon) {
-        int status = (int) (intHealth & 0x00000700) >> 8;
-        int hp = (int) (intHealth & 0x000000FF) >> 0;
-
-        int[] pokemon;
-        if (intPokemon == 1){
-            pokemon = atkInfo;
-        } else {
-            pokemon = defInfo;
-        }
-        if (pokemon[0] < 1){
-            return;
-        }
-        
-        String nombre = pokemonNames.get(pokemon[0]);
-
-        if (pokemon[4] != status){
-            if (status == 1){
-                logDisplay.append("Nooooo! " + pokemonNames.get(pokemon[0]) + " ha sido envenenado!\n");
-            } else if (status == 2){
-                logDisplay.append("ZzzZZzzz... " + pokemonNames.get(pokemon[0]) + " se ha quedado dormido!\n");
-            } if (status == 3){
-                logDisplay.append("OHHHH! " + pokemonNames.get(pokemon[0]) + " se ha desmayado!\n");
-            }
-        } else if (pokemon[4] == 1 && pokemon[5] > hp){
-            logDisplay.append("Oh no! " + pokemonNames.get(pokemon[0]) + " ha perdido vida por envenenamiento!\n");
-        }
-
-        pokemon[4] = status;
-        pokemon[5] = hp;
-        refreshDisplay();
-    }
-
-    private void setStats(int intStats, int intPokemon) {
-        int atkPhy = (int) (intStatus & 0x1FE00000) >> 24;
-        int defPhy = (int) (intStatus & 0x001FE000) >> 21;
-        int atkSpe = (int) (intStatus & 0x00001FE0) >> 14;
-        int defSpe = (int) (intStatus & 0x00000000) >> 8;
-        int vel = (int) (intStatus & 0x00000000) >> 6;
-    }
-
-    private void getStatus(int intStatus, int intPokemon) {
-        // int id = (int) (intStatus & 0xFE000000) >> 25;
-        // int tipo = (int) (intStatus & 0x01C00000) >> 22;
-        // int nivel = (int) (intStatus & 0x003F8000) >> 15;
-        // int exp = (int) (intStatus & 0x00007F00) >> 8;
-        // int estado = (int) (intStatus & 0x000000C0) >> 6;
-        // int hp = (int) (intStatus & 0x00000000) >> 12;
-        // int hpTotal = (int) (intStatus & 0x00000000) >> 9;
-
-        int id = (int) (intStatus & 0x7F000000) >> 24;
-        int tipo = (int) (intStatus & 0x00E00000) >> 21;
-        int nivel = (int) (intStatus & 0x001FC000) >> 14;
-        int exp = (int) (intStatus & 0x00003F80) >> 8;
-        int estado = (int) (intStatus & 0x000000C0) >> 6;
-        int hp = (int) (intStatus & 0x0000003F) >> 0;
-
-        System.out.println("Pokemon " + intPokemon + " id: " + id);
-        String nombre = pokemonNames.get(id);
-        if (id > 0 && intPokemon == 1 && atkInfo[0] != id){
-            atkInfo[0] = id;
-            atkInfo[1] = tipo;
-            atkInfo[2] = nivel;
-            atkInfo[3] = exp;
-            atkInfo[4] = estado;
-            atkInfo[5] = hp;
-            atkInfo[6] = hp;
-            logDisplay.append("Enhorabuena! " + nombre + " ha evolucionado!\n");
-            refreshDisplay();
-        } else if (id > 0 && intPokemon == 2 && defInfo[0] != id){
-            defInfo[0] = id;
-            defInfo[1] = tipo;
-            defInfo[2] = nivel;
-            defInfo[3] = exp;
-            defInfo[4] = estado;
-            defInfo[5] = hp;
-            defInfo[6] = hp;
-            logDisplay.append("Enhorabuena! " + nombre + " ha evolucionado!\n");
-            refreshDisplay();
-        }
-        if (estado == 1){
-            logDisplay.append("Oh no! " + nombre + " esta envenando!\n");
-        } else if (estado == 2){
-            logDisplay.append("Oh no! " + nombre + " esta dormido!\n");
-        } else if (estado == 3){
-            logDisplay.append("Oh no! " + nombre + " esta se ha desmayado!\n");
         }
     }
 

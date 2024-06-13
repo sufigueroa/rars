@@ -72,6 +72,12 @@ sw a0, 0xffff0004, t1
 addi a0, zero, 4
 sw a0, 0xffff0004, t1
 
+## Evolucionar Pidgey
+addi t0, zero, 17	## Estado nuevo
+slli t0, t0, 4
+addi a0, t0, 5		## CMD 5
+sw a0, 0xffff0014, t1
+
 ## Terminar turno 7
 addi a0, zero, 4
 sw a0, 0xffff0004, t1

@@ -360,117 +360,17 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         if (notice.getAddress() == BATTLE_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             int command = intCommand & 0x0000000F;
-            if (command == 1){                  // Iniciar Batalla
-                initializeBattle();
-            } else if (command == 2 && battleInitialize == 0){
-                idBackground = (intCommand & 0x00000070) >> 4;
-            } else if (command == 3){           // Setear Clima
-                idWeather = (intCommand & 0x00000070) >> 4;
-                durationWeather = (intCommand & 0x00000380) >> 7;
-                if (battleInitialize > 0){
-                    logDisplay.append("El clima " + pokemonWeather.get(idWeather) + " ha comenzado. Turnos restantes: " + durationWeather + "\n");
-                }
-            } else if (command == 4){           // Finalizar Turno
-                idTurn = idTurn + 1;
-                if (atkInfo[4] == 1){
-                    logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha perdido vida por envenenamiento.\n");
-                }
-                if (defInfo[4] == 1){
-                    logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha perdido vida por envenenamiento.\n");
-                }
-                if (idWeather != 0){
-                    durationWeather = durationWeather - 1;
-                    if (durationWeather < 1){
-                        logDisplay.append("Clima " + pokemonWeather.get(idWeather) + " ha finalizado.\n");
-                        idWeather = 0;
-                    } else {
-                        logDisplay.append("Clima " + pokemonWeather.get(idWeather) + ". Turnos restantes: " + durationWeather + "\n");
-                    }
-                }
-            } else if (command == 5){           // Finalizar Batalla
-                battleFinished = 1;
-                winner = (intCommand & 0x00000010) >> 4;
-                logDisplay.append("La batalla " + idBattle + " ha finalizado.\n");
-                if (winner == 1){
-                    logDisplay.append("Has ganado!!!\n");
-                } else {
-                    logDisplay.append("Has perdido :(\n");
-                }
-            }
+            getCommandBattle(command);
             refreshStatusBattle();
             refreshDisplay();
         } else if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             int command = intCommand & 0x0000000F;
-            if (command == 1){
-                if (battleInitialize == 1){
-                    System.out.println("La batalla ya comenzo! No se puede inicializar los pokemones\n");
-                } else {
-                    try {
-                        int addressPokemon = Globals.memory.getWordNoNotify(POKEMON_1_STATUS);
-                        setPokemon(addressPokemon, 1);
-                    } catch (AddressErrorException aee) {
-                    }
-                }
-            } else if (command == 2){
-                int newStatus = (intCommand & 0x00000070) >> 4;
-                if (newStatus != atkInfo[4]){
-                    atkInfo[4] = newStatus;
-                    if (newStatus == 0){
-                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha sido curado! :D\n");
-                    } else if (newStatus == 1){
-                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha sido envenenado! :o\n");
-                    } else if (newStatus == 2){
-                        logDisplay.append("ZzzZZzz... El pokemon " + pokemonNames.get(atkInfo[0]) + " se ha quedado dormido.\n");
-                    } else if (newStatus == 3){
-                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha quedado paralizado..\n");
-                    } else if (newStatus == 4){
-                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " se ha quemado!!!\n");
-                    } else if (newStatus == 5){
-                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " esta congelado.\n");
-                    } else if (newStatus == 6){
-                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " esta confundido.\n");
-                    } else if (newStatus == 7){
-                        logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " se ha desmayado! :(\n");
-                    }
-                }
-            }
+            getCommandPokemon(command, 1, POKEMON_1_STATUS, atkInfo);
         } else if (notice.getAddress() == POKEMON_2_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             int command = intCommand & 0x0000000F;
-            if (command == 1){
-                if (battleInitialize == 1){
-                    System.out.println("La batalla ya comenzo! No se puede inicializar los pokemones\n");
-                } else {
-                    try {
-                        int addressPokemon = Globals.memory.getWordNoNotify(POKEMON_2_STATUS);
-                        setPokemon(addressPokemon, 2);
-                    } catch (AddressErrorException aee) {
-                    }
-                }
-            } else if (command == 2){
-                int newStatus = (intCommand & 0x00000070) >> 4;
-                if (newStatus != defInfo[4]){
-                    defInfo[4] = newStatus;
-                    if (newStatus == 0){
-                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha sido curado! :D\n");
-                    } else if (newStatus == 1){
-                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha sido envenenado! :o\n");
-                    } else if (newStatus == 2){
-                        logDisplay.append("ZzzZZzz... El pokemon " + pokemonNames.get(defInfo[0]) + " se ha quedado dormido.\n");
-                    } else if (newStatus == 3){
-                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha quedado paralizado..\n");
-                    } else if (newStatus == 4){
-                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " se ha quemado!!!\n");
-                    } else if (newStatus == 5){
-                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " esta congelado.\n");
-                    } else if (newStatus == 6){
-                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " esta confundido.\n");
-                    } else if (newStatus == 7){
-                        logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " se ha desmayado! :(\n");
-                    }
-                }
-            }
+            getCommandPokemon(command, 2, POKEMON_2_STATUS, defInfo);
         }
     }
 
@@ -524,16 +424,94 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         }
     }
 
-    private void getCommand(int intCommand, int intPokemon) {
-        int command = (int) (intCommand & 0x000000FF);
+    private void getCommandBattle(int command) {
+        if (command == 1){                  // Iniciar Batalla
+            initializeBattle();
+        } else if (command == 2 && battleInitialize == 0){
+            idBackground = (intCommand & 0x00000070) >> 4;
+        } else if (command == 3){           // Setear Clima
+            idWeather = (intCommand & 0x00000070) >> 4;
+            durationWeather = (intCommand & 0x00000380) >> 7;
+            if (battleInitialize > 0){
+                logDisplay.append("El clima " + pokemonWeather.get(idWeather) + " ha comenzado. Turnos restantes: " + durationWeather + "\n");
+            }
+        } else if (command == 4){           // Finalizar Turno
+            idTurn = idTurn + 1;
+            if (atkInfo[4] == 1){
+                logDisplay.append("El pokemon " + pokemonNames.get(atkInfo[0]) + " ha perdido vida por envenenamiento.\n");
+            }
+            if (defInfo[4] == 1){
+                logDisplay.append("El pokemon " + pokemonNames.get(defInfo[0]) + " ha perdido vida por envenenamiento.\n");
+            }
+            if (idWeather != 0){
+                durationWeather = durationWeather - 1;
+                if (durationWeather < 1){
+                    logDisplay.append("Clima " + pokemonWeather.get(idWeather) + " ha finalizado.\n");
+                    idWeather = 0;
+                } else {
+                    logDisplay.append("Clima " + pokemonWeather.get(idWeather) + ". Turnos restantes: " + durationWeather + "\n");
+                }
+            }
+        } else if (command == 5){           // Finalizar Batalla
+            battleFinished = 1;
+            winner = (intCommand & 0x00000010) >> 4;
+            logDisplay.append("La batalla " + idBattle + " ha finalizado.\n");
+            if (winner == 1){
+                logDisplay.append("Has ganado!!!\n");
+            } else {
+                logDisplay.append("Has perdido :(\n");
+            }
+        }
+    }
+
+    private void getCommandPokemon(int command, int intPokemon, int regAddr, int[] pokemon) {
         if (command == 1){
-            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+            if (battleInitialize == 1){
+                System.out.println("La batalla ya comenzo! No se puede inicializar los pokemones\n");
+            } else {
+                try {
+                    int addressPokemon = Globals.memory.getWordNoNotify(regAddr);
+                    setPokemon(addressPokemon, intPokemon);
+                } catch (AddressErrorException aee) {
+                }
+            }
         } else if (command == 2){
-            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+            int newStatus = (intCommand & 0x00000070) >> 4;
+            if (newStatus != pokemon[4]){
+                pokemon[4] = newStatus;
+                if (newStatus == 0){
+                    logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " ha sido curado! :D\n");
+                } else if (newStatus == 1){
+                    logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " ha sido envenenado! :o\n");
+                } else if (newStatus == 2){
+                    logDisplay.append("ZzzZZzz... El pokemon " + pokemonNames.get(pokemon[0]) + " se ha quedado dormido.\n");
+                } else if (newStatus == 3){
+                    logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " ha quedado paralizado..\n");
+                } else if (newStatus == 4){
+                    logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " se ha quemado!!!\n");
+                } else if (newStatus == 5){
+                    logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " esta congelado.\n");
+                } else if (newStatus == 6){
+                    logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " esta confundido.\n");
+                } else if (newStatus == 7){
+                    logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " se ha desmayado! :(\n");
+                }
+            }
         } else if (command == 3){
-            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+
         } else if (command == 4){
-            logDisplay.append("El pokemon " + intPokemon + " ha usado su ataque " + command + "\n");
+
+        } else if (command == 5){       // Evolucionar pokemon
+            int idEvolution = (intCommand & 0x00000FF0) >> 4;
+            logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " ha evolucionado a " + pokemonNames.get(idEvolution) + "!\n");
+            pokemon[0] = idEvolution;
+            refreshDisplay();
+        } else if (command == 6){
+
+        } else if (command == 7){
+
+        } else if (command == 8){
+
         }
     }
 
@@ -779,6 +757,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         logDisplay.setEditable(false);
         logDisplay.setFont(defaultFont);
         logDisplay.setMargin(textAreaInsets);
+        DefaultCaret caret = (DefaultCaret)logDisplay.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         logAccepterScrollPane = new JScrollPane(logDisplay);
         logAccepterScrollPane.setPreferredSize(new Dimension(900, 100));
         logPanel.add(logAccepterScrollPane);

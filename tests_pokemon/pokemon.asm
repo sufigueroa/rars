@@ -102,17 +102,41 @@ addi a0, t0, 3		## CMD 5
 sw a0, 0xffff000C, t1
 
 ## Aprender movimiento
-la t0, tackle
+la t0, harden
 sw t0, 0xffff0008, t1
-addi t0, zero, 0	## Estado nuevo
+addi t0, zero, 0	## Posicion movimiento
 slli t0, t0, 4
 addi a0, t0, 6		## CMD 6
 sw a0, 0xffff000C, t1
 
 ## Aprender movimiento
-la t0, pound
+la t0, tackle
 sw t0, 0xffff0008, t1
-addi t0, zero, 0	## Estado nuevo
+addi t0, zero, 1	## Posicion movimiento
+slli t0, t0, 4
+addi a0, t0, 6		## CMD 6
+sw a0, 0xffff000C, t1
+
+## Aprender movimiento
+la t0, string_shot
+sw t0, 0xffff0008, t1
+addi t0, zero, 2	## Posicion movimiento
+slli t0, t0, 4
+addi a0, t0, 6		## CMD 6
+sw a0, 0xffff000C, t1
+
+## Aprender movimiento
+la t0, confusion
+sw t0, 0xffff0008, t1
+addi t0, zero, 3	## Posicion movimiento
+slli t0, t0, 4
+addi a0, t0, 6		## CMD 6
+sw a0, 0xffff000C, t1
+
+## Aprender movimiento
+la t0, poison_powder
+sw t0, 0xffff0008, t1
+addi t0, zero, 0	## Posicion movimiento
 slli t0, t0, 4
 addi a0, t0, 6		## CMD 6
 sw a0, 0xffff000C, t1

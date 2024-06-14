@@ -847,8 +847,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                 g.drawImage(pokemon_defensor, poke_def_x, poke_def_y, null);
             }
             g.dispose();
-            // // Save as new image
-            ImageIO.write(combined, "PNG", new File(pathPokemons, "temp.png"));
         } catch (IOException ex) {
             combined = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB);
         }

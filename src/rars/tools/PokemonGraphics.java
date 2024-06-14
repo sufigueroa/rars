@@ -988,6 +988,12 @@ private void setMove(int address, int intPokemon, int numMov){
         displayPanel.removeAll();
         displayPanel.add(buildBattleInfoDisplay(), BorderLayout.NORTH);
         displayPanel.add(buildCentralPanel());
+
+        // JButton atkMovesButton = new JButton("Movimientos");
+        // atkMovesButton.setToolTipText("Select the font for the display panel");
+        // atkMovesButton.addActionListener(new showMoves());
+        // displayPanel.add(atkMovesButton);
+
         displayPanel.revalidate();
         displayPanel.repaint();
     }
@@ -1015,6 +1021,12 @@ private void setMove(int address, int intPokemon, int numMov){
         } catch (AddressErrorException aee) {
             System.out.println("Me equivoque :(" + aee);
             System.exit(0);
+        }
+    }
+
+    private class showMoves implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            
         }
     }
 }

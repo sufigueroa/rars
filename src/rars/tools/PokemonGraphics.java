@@ -55,7 +55,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private PokemonGraphics simulator;
 
     // Major GUI components
-    private JPanel keyboardAndDisplay;
+    private JPanel pokemonDisplay;
     private JScrollPane displayScrollPane;
     private JTextArea display;
     private JPanel displayPanel;
@@ -157,6 +157,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         pokemonTypes.put(12, "Roca");
         pokemonTypes.put(13, "Fantasma");
         pokemonTypes.put(14, "Psiquico");
+        pokemonTypes.put(15, "Oscuro");
 
         pokemonStatus.put(0, "Saludable");
         pokemonStatus.put(1, "Envenenado");
@@ -516,10 +517,10 @@ public class PokemonGraphics extends AbstractToolAndApplication {
      * @return the GUI component containing these two areas
      */
     protected JComponent buildMainDisplayArea() {
-        keyboardAndDisplay = new JPanel(new BorderLayout());
+        pokemonDisplay = new JPanel(new BorderLayout());
         JSplitPane general = new JSplitPane(JSplitPane.VERTICAL_SPLIT, buildDisplay(), buildInfo());
-        keyboardAndDisplay.add(general);
-        return keyboardAndDisplay;
+        pokemonDisplay.add(general);
+        return pokemonDisplay;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -570,38 +571,38 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         refreshDisplay();
     }
 
-private void setMove(int address, int intPokemon, int numMov){
-    int[][] pokeMoves;
-    int[] pokemon;
-    if (intPokemon == 1){
-        pokeMoves = atkMoves;
-        pokemon = atkInfo;
-    } else {
-        pokeMoves = defMoves;
-        pokemon = defInfo;
+    private void setMove(int address, int intPokemon, int numMov){
+        int[][] pokeMoves;
+        int[] pokemon;
+        if (intPokemon == 1){
+            pokeMoves = atkMoves;
+            pokemon = atkInfo;
+        } else {
+            pokeMoves = defMoves;
+            pokemon = defInfo;
+        }
+        if (battleInitialize == 1 && pokeMoves[numMov][0] > 0){
+            String moveName = pokemonMoves.get(pokeMoves[numMov][0]);
+            String pokeName = pokemonNames.get(pokemon[0]);
+            logDisplay.append(pokeName + " ha olvidado " + moveName + "\n");
+        }
+        try {
+            pokeMoves[numMov][0] = Globals.memory.getWordNoNotify(address);
+            pokeMoves[numMov][1] = Globals.memory.getWordNoNotify(address + 4);
+            pokeMoves[numMov][2] = Globals.memory.getWordNoNotify(address + 8);
+            pokeMoves[numMov][3] = Globals.memory.getWordNoNotify(address + 12);
+            pokeMoves[numMov][4] = Globals.memory.getWordNoNotify(address + 16);
+            pokeMoves[numMov][5] = Globals.memory.getWordNoNotify(address + 20);
+        } catch (AddressErrorException aee) {
+            System.out.println("Tool author specified incorrect MMIO address!" + aee);
+            System.exit(0);
+        }
+        if (battleInitialize == 1){
+            String moveName = pokemonMoves.get(pokeMoves[numMov][0]);
+            String pokeName = pokemonNames.get(pokemon[0]);
+            logDisplay.append(pokeName + " ha aprendido " + moveName + "\n");
+        }
     }
-    if (battleInitialize == 1 && pokeMoves[numMov][0] > 0){
-        String moveName = pokemonMoves.get(pokeMoves[numMov][0]);
-        String pokeName = pokemonNames.get(pokemon[0]);
-        logDisplay.append(pokeName + " ha olvidado " + moveName + "\n");
-    }
-    try {
-        pokeMoves[numMov][0] = Globals.memory.getWordNoNotify(address);
-        pokeMoves[numMov][1] = Globals.memory.getWordNoNotify(address + 4);
-        pokeMoves[numMov][2] = Globals.memory.getWordNoNotify(address + 8);
-        pokeMoves[numMov][3] = Globals.memory.getWordNoNotify(address + 12);
-        pokeMoves[numMov][4] = Globals.memory.getWordNoNotify(address + 16);
-        pokeMoves[numMov][5] = Globals.memory.getWordNoNotify(address + 20);
-    } catch (AddressErrorException aee) {
-        System.out.println("Tool author specified incorrect MMIO address!" + aee);
-        System.exit(0);
-    }
-    if (battleInitialize == 1){
-        String moveName = pokemonMoves.get(pokeMoves[numMov][0]);
-        String pokeName = pokemonNames.get(pokemon[0]);
-        logDisplay.append(pokeName + " ha aprendido " + moveName + "\n");
-    }
-}
 
     private void setPokemon(int address, int intPokemon){
         int[] pokemon;
@@ -914,15 +915,21 @@ private void setMove(int address, int intPokemon, int numMov){
         if (intPokemon == 1){
             if (battleInitialize == 1){
                 info.add(infoPanel, BorderLayout.WEST);
+                JButton movButton = new JButton("Ver Movimientos");
+                movButton.addActionListener(new showMoves(1));
+                info.add(movButton);
             } else {
                 info.add(infoPokemonEmpty(), BorderLayout.WEST);
+                info.add(Box.createHorizontalStrut(10));
             }
-            info.add(Box.createHorizontalStrut(10));
         } else if (intPokemon == 2){
-            info.add(Box.createHorizontalStrut(10));
             if (battleInitialize == 1){
+                JButton movButton = new JButton("Ver Movimientos");
+                movButton.addActionListener(new showMoves(2));
+                info.add(movButton);
                 info.add(infoPanel, BorderLayout.EAST);
             } else {
+                info.add(Box.createHorizontalStrut(10));
                 info.add(infoPokemonEmpty(), BorderLayout.EAST);
             }
         }
@@ -988,12 +995,6 @@ private void setMove(int address, int intPokemon, int numMov){
         displayPanel.removeAll();
         displayPanel.add(buildBattleInfoDisplay(), BorderLayout.NORTH);
         displayPanel.add(buildCentralPanel());
-
-        // JButton atkMovesButton = new JButton("Movimientos");
-        // atkMovesButton.setToolTipText("Select the font for the display panel");
-        // atkMovesButton.addActionListener(new showMoves());
-        // displayPanel.add(atkMovesButton);
-
         displayPanel.revalidate();
         displayPanel.repaint();
     }
@@ -1025,8 +1026,82 @@ private void setMove(int address, int intPokemon, int numMov){
     }
 
     private class showMoves implements ActionListener {
-        public void actionPerformed(ActionEvent e) {
-            
+        public int intPokemon;
+
+        public showMoves(int intPokemon){
+            this.intPokemon = intPokemon;
         }
+
+        public void actionPerformed(ActionEvent e) {
+            JButton button = (JButton) e.getSource();
+            String text = button.getText();
+            JFrame frame;
+
+            if (intPokemon == 1){
+                frame = showMovesPanel.show(1, atkInfo, atkMoves, pokemonMoves, pokemonTypes);
+                frame.setLocationRelativeTo(null);
+                frame.setVisible(true);
+            } else if (intPokemon == 2){
+                frame = showMovesPanel.show(2, defInfo, defMoves, pokemonMoves, pokemonTypes);
+                frame.setLocationRelativeTo(null);
+                frame.setVisible(true);
+            }
+        }
+    }
+
+    private class showMovesPanel {
+
+        public static JFrame show(int intPokemon, int[] pokemon, int[][] moves, HashMap<Integer, String> pokemonMoves, HashMap<Integer, String> pokemonTypes){
+            // Frame Setup
+            JFrame frame = new JFrame();
+            frame.setSize(400, 500);
+            ImageIcon img = new ImageIcon("./src/images/pokemon/dratini.png");
+            frame.setIconImage(img.getImage());
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+            if (intPokemon == 1){
+                frame.setTitle("Movimientos Pokemon Atacante");
+                panel.add(new PrettyJLabel("Movimientos Atacante", 16), BorderLayout.NORTH);
+            } else {
+                frame.setTitle("Movimientos Pokemon Defensor");
+                panel.add(new PrettyJLabel("Movimientos Defensor", 16), BorderLayout.NORTH);
+            }
+
+
+            // Setear movimientos
+            JPanel movPanel = new JPanel(new GridLayout(4,1));
+            movPanel.add(movesPanel(intPokemon, 0, pokemon, moves, pokemonMoves, pokemonTypes));
+            movPanel.add(movesPanel(intPokemon, 1, pokemon, moves, pokemonMoves, pokemonTypes));
+            movPanel.add(movesPanel(intPokemon, 2, pokemon, moves, pokemonMoves, pokemonTypes));
+            movPanel.add(movesPanel(intPokemon, 3, pokemon, moves, pokemonMoves, pokemonTypes));
+
+            // panel.add(movPanel, BorderLayout.CENTER);
+            panel.add(movPanel);
+            frame.add(panel);
+
+            return frame;
+        }    
+        
+        private static JPanel movesPanel (int intPokemon, int movInt, int[] pokemon, int[][] moves, HashMap<Integer, String> pokemonMoves, HashMap<Integer, String> pokemonTypes){
+            JPanel mov = new JPanel(new GridLayout(4,2));
+            mov.add(new PrettyJLabel("Movimiento " + movInt, 12));
+            mov.add(new PrettyJLabel(" ", 12));
+            if (moves[movInt][0] == 0){
+                mov.add(new PrettyJLabel("Nombre: ", 10));
+                mov.add(new PrettyJLabel("Tipo: ", 10));
+                mov.add(new PrettyJLabel("Categoria: ", 10));
+                mov.add(new PrettyJLabel("Poder: ", 10));
+                mov.add(new PrettyJLabel("Precision: ", 10));
+                mov.add(new PrettyJLabel("PPs: ", 10));
+            } else {
+                mov.add(new PrettyJLabel("Nombre: " + pokemonMoves.get(moves[movInt][0]), 10));
+                mov.add(new PrettyJLabel("Tipo: " + pokemonTypes.get(moves[movInt][1]), 10));
+                mov.add(new PrettyJLabel("Categoria: " + moves[movInt][2], 10));
+                mov.add(new PrettyJLabel("Poder: " + moves[movInt][3], 10));
+                mov.add(new PrettyJLabel("Precision: " + moves[movInt][4], 10));
+                mov.add(new PrettyJLabel("PPs: " + moves[movInt][5], 10));
+            }
+            return mov;
+        } 
     }
 }

@@ -140,3 +140,9 @@ addi t0, zero, 0	## Posicion movimiento
 slli t0, t0, 4
 addi a0, t0, 6		## CMD 6
 sw a0, 0xffff000C, t1
+
+## Usar movimiento
+addi t0, zero, 0	## Posicion movimiento
+slli t0, t0, 4
+addi a0, t0, 7		## CMD 6
+sw a0, 0xffff000C, t1

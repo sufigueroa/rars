@@ -604,6 +604,21 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         }
     }
 
+    private void useMove(int intPokemon, int numMov){
+        int[][] pokeMoves;
+        int[] pokemon;
+        if (intPokemon == 1){
+            pokeMoves = atkMoves;
+            pokemon = atkInfo;
+        } else {
+            pokeMoves = defMoves;
+            pokemon = defInfo;
+        }
+        if (battleInitialize == 1 && pokeMoves[numMov][0] > 0){
+            logDisplay.append(pokemonNames.get(pokemon[0]) + " ha usado " + pokemonMoves.get(pokeMoves[numMov][0]) + "!!\n");
+        }
+    }
+
     private void setPokemon(int address, int intPokemon){
         int[] pokemon;
         if (intPokemon == 1){
@@ -729,7 +744,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
         } else if (command == 7){       // Usar movimiento
             int numMov = (intCommand & 0x00000030) >> 4;        // numero de movimiento
-
+            useMove(intPokemon, numMov);
         } else if (command == 8){
 
         }

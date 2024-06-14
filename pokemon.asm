@@ -82,8 +82,20 @@ sw a0, 0xffff0014, t1
 addi a0, zero, 4
 sw a0, 0xffff0004, t1
 
+## Subir exp Butterfree
+addi t0, zero, 10	## Estado nuevo
+slli t0, t0, 4
+addi a0, t0, 3		## CMD 5
+sw a0, 0xffff000C, t1
+
 ## Terminar batalla
 addi t0, zero, 1
 slli t0, t0, 4
 addi a0, t0, 5
 sw a0, 0xffff0004, t1
+
+## Subir exp Butterfree
+addi t0, zero, 32	## Estado nuevo
+slli t0, t0, 4
+addi a0, t0, 3		## CMD 5
+sw a0, 0xffff000C, t1

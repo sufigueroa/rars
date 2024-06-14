@@ -65,6 +65,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     private JButton fontButton;
     private Font defaultFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
+    JPanel infoLeftPanel;
+    JPanel infoRightPanel;
+    JPanel infoDisplayPanel;
+    JLabel picLabel;
+
     public HashMap<Integer, String> pokemonNames = new HashMap<Integer, String>();
     public HashMap<Integer, String> pokemonTypes = new HashMap<Integer, String>();
     public HashMap<Integer, String> pokemonStatus = new HashMap<Integer, String>();
@@ -362,7 +367,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             int command = intCommand & 0x0000000F;
             getCommandBattle(command);
             refreshStatusBattle();
-            refreshDisplay();
         } else if (notice.getAddress() == POKEMON_1_COMMAND && notice.getAccessType() == AccessNotice.WRITE) {
             intCommand = notice.getValue();
             int command = intCommand & 0x0000000F;
@@ -417,7 +421,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             pokemon[9] = Globals.memory.getWordNoNotify(address + 36);
             pokemon[10] = Globals.memory.getWordNoNotify(address + 40);
             pokemon[11] = Globals.memory.getWordNoNotify(address + 44);
-            refreshDisplay();
+            refreshCentralPanel();
         } catch (AddressErrorException aee) {
             System.out.println("Tool author specified incorrect MMIO address!" + aee);
             System.exit(0);
@@ -429,12 +433,14 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             initializeBattle();
         } else if (command == 2 && battleInitialize == 0){
             idBackground = (intCommand & 0x00000070) >> 4;
+            refreshDisplay();
         } else if (command == 3){           // Setear Clima
             idWeather = (intCommand & 0x00000070) >> 4;
             durationWeather = (intCommand & 0x00000380) >> 7;
             if (battleInitialize > 0){
                 logDisplay.append("El clima " + pokemonWeather.get(idWeather) + " ha comenzado. Turnos restantes: " + durationWeather + "\n");
             }
+            refreshCentralPanel();
         } else if (command == 4){           // Finalizar Turno
             idTurn = idTurn + 1;
             if (atkInfo[4] == 1){
@@ -452,6 +458,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                     logDisplay.append("Clima " + pokemonWeather.get(idWeather) + ". Turnos restantes: " + durationWeather + "\n");
                 }
             }
+            refreshCentralPanel();
         } else if (command == 5){           // Finalizar Batalla
             battleFinished = 1;
             winner = (intCommand & 0x00000010) >> 4;
@@ -461,6 +468,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             } else {
                 logDisplay.append("Has perdido :(\n");
             }
+            refreshCentralPanel();
         }
     }
 
@@ -475,7 +483,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                 } catch (AddressErrorException aee) {
                 }
             }
-        } else if (command == 2){
+        } else if (command == 2){           // Actualizar estado
             int newStatus = (intCommand & 0x00000070) >> 4;
             if (newStatus != pokemon[4]){
                 pokemon[4] = newStatus;
@@ -496,9 +504,11 @@ public class PokemonGraphics extends AbstractToolAndApplication {
                 } else if (newStatus == 7){
                     logDisplay.append("El pokemon " + pokemonNames.get(pokemon[0]) + " se ha desmayado! :(\n");
                 }
+                refreshCentralPanel();
             }
-        } else if (command == 3){
-
+        } else if (command == 3){           // Actualizar la experiencia
+            pokemon[3] = (intCommand & 0x000007F0) >> 4;
+            refreshCentralPanel();
         } else if (command == 4){
 
         } else if (command == 5){       // Evolucionar pokemon
@@ -637,7 +647,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
 
     private JLabel addImage(){
         BufferedImage image = mergeImages();
-        JLabel picLabel = new JLabel(new ImageIcon(image));
+        picLabel = new JLabel(new ImageIcon(image));
         return picLabel;
     }
 
@@ -670,7 +680,8 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         return infoPanel; 
     }
 
-    private JPanel infoPokemon(int[] pokemon){
+    private JPanel infoPokemon(int[] pokemon, int intPokemon){
+        JPanel info = new JPanel(new GridLayout(1,2));
         JPanel infoPanel = new JPanel(new GridLayout(13,1));
         String nombre = "";
         if (pokemon[0] > 0){
@@ -691,7 +702,25 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         infoPanel.add(new PrettyJLabel("Defensa Especial: " + pokemon[10], 11));
         infoPanel.add(new PrettyJLabel("Velocidad: " + pokemon[11], 11));
 
-        return infoPanel; 
+        if (intPokemon == 1){
+            if (battleInitialize == 1){
+                info.add(infoPanel, BorderLayout.WEST);
+            } else {
+                info.add(infoPokemonEmpty(), BorderLayout.WEST);
+            }
+            info.add(Box.createHorizontalStrut(10));
+        } else if (intPokemon == 2){
+            info.add(Box.createHorizontalStrut(10));
+            if (battleInitialize == 1){
+                info.add(infoPanel, BorderLayout.EAST);
+            } else {
+                info.add(infoPokemonEmpty(), BorderLayout.EAST);
+            }
+        }
+        info.revalidate();
+        info.repaint();
+
+        return info; 
     }
 
     private JPanel buildBattleInfoDisplay(){
@@ -719,28 +748,31 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private JPanel buildCentralPanel(){
-        JPanel infoDisplayPanel = new JPanel(new GridLayout(1,3));
-        JPanel infoLeftPanel = new JPanel(new GridLayout(1,2));
-        JPanel infoRightPanel = new JPanel(new GridLayout(1,2));
-
-        if (battleInitialize == 1){
-            infoLeftPanel.add(infoPokemon(atkInfo), BorderLayout.WEST);
-        } else {
-            infoLeftPanel.add(infoPokemonEmpty(), BorderLayout.WEST);
-        }
-        infoLeftPanel.add(Box.createHorizontalStrut(10));
+        infoDisplayPanel = new JPanel(new GridLayout(1,3));
+        infoLeftPanel = infoPokemon(atkInfo, 1);
         infoDisplayPanel.add(infoLeftPanel);
-
         infoDisplayPanel.add(addImage(), BorderLayout.CENTER);
-
-        infoRightPanel.add(Box.createHorizontalStrut(10));
-        if (battleInitialize == 1){
-            infoRightPanel.add(infoPokemon(defInfo), BorderLayout.EAST);
-        } else {
-            infoRightPanel.add(infoPokemonEmpty(), BorderLayout.EAST);
-        }
+        infoRightPanel = infoPokemon(defInfo, 2);
         infoDisplayPanel.add(infoRightPanel);
         return infoDisplayPanel;
+    }
+
+    private JPanel refreshSidePanels(){
+        infoDisplayPanel = new JPanel(new GridLayout(1,3));
+        infoLeftPanel = infoPokemon(atkInfo, 1);
+        infoDisplayPanel.add(infoLeftPanel);
+        infoDisplayPanel.add(picLabel, BorderLayout.CENTER);
+        infoRightPanel = infoPokemon(defInfo, 2);
+        infoDisplayPanel.add(infoRightPanel);
+        return infoDisplayPanel;
+    }
+
+    private void refreshCentralPanel(){
+        displayPanel.removeAll();
+        displayPanel.add(buildBattleInfoDisplay(), BorderLayout.NORTH);
+        displayPanel.add(refreshSidePanels());
+        displayPanel.revalidate();
+        displayPanel.repaint();
     }
 
     private void refreshDisplay(){

@@ -912,21 +912,28 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         infoPanel.add(new PrettyJLabel("Defensa Especial: " + pokemon[10], 11));
         infoPanel.add(new PrettyJLabel("Velocidad: " + pokemon[11], 11));
 
+        JPanel buttonPanel = new JPanel();
+        // buttonPanel.setBorder(BorderFactory.createEmptyBorder(100, 10, 50, 30));
+        JButton movButton = new JButton("Ver Movimientos");
+        // movButton.setPreferredSize(new Dimension(150, 40)); 
+
         if (intPokemon == 1){
             if (battleInitialize == 1){
                 info.add(infoPanel, BorderLayout.WEST);
-                JButton movButton = new JButton("Ver Movimientos");
                 movButton.addActionListener(new showMoves(1));
-                info.add(movButton);
+                buttonPanel.setBorder(BorderFactory.createEmptyBorder(100, 30, 50, 10));
+                buttonPanel.add(movButton, BorderLayout.CENTER);
+                info.add(buttonPanel);
             } else {
                 info.add(infoPokemonEmpty(), BorderLayout.WEST);
                 info.add(Box.createHorizontalStrut(10));
             }
         } else if (intPokemon == 2){
             if (battleInitialize == 1){
-                JButton movButton = new JButton("Ver Movimientos");
                 movButton.addActionListener(new showMoves(2));
-                info.add(movButton);
+                buttonPanel.setBorder(BorderFactory.createEmptyBorder(100, 10, 50, 30));
+                buttonPanel.add(movButton, BorderLayout.CENTER);
+                info.add(buttonPanel);
                 info.add(infoPanel, BorderLayout.EAST);
             } else {
                 info.add(Box.createHorizontalStrut(10));
@@ -1075,7 +1082,6 @@ public class PokemonGraphics extends AbstractToolAndApplication {
             movPanel.add(movesPanel(intPokemon, 2, pokemon, moves, pokemonMoves, pokemonTypes));
             movPanel.add(movesPanel(intPokemon, 3, pokemon, moves, pokemonMoves, pokemonTypes));
 
-            // panel.add(movPanel, BorderLayout.CENTER);
             panel.add(movPanel);
             frame.add(panel);
 

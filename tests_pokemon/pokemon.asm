@@ -24,7 +24,67 @@ addi a0, zero, 1
 sw a0, 0xffff0014, t1
 
 ## Setear background
-addi t0, zero, 0
+addi t0, zero, 1
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 2
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 3
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 4
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 5
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 6
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 7
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 8
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 9
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 10
+slli t0, t0, 4
+addi a0, t0, 2
+sw a0, 0xffff0004, t1
+
+## Setear background
+addi t0, zero, 11
 slli t0, t0, 4
 addi a0, t0, 2
 sw a0, 0xffff0004, t1

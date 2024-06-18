@@ -92,7 +92,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     // Battle information
     private int idBattle = 0;
     private int idTurn = 0;
-    private int idBackground = 0;
+    private int idBackground = 1;
     private int idWeather = 0;
     private int durationWeather = 0;
     private int battleInitialize = 0;           // La batalla esta inicializada?
@@ -127,14 +127,18 @@ public class PokemonGraphics extends AbstractToolAndApplication {
     }
 
     private void initializePokemon(){
-        pokemonBackgrounds.put(0, "Pastizal");
-        pokemonBackgrounds.put(1, "Embrujado");
-        pokemonBackgrounds.put(2, "Pastizal");
-        pokemonBackgrounds.put(3, "Pastizal");
-        pokemonBackgrounds.put(4, "Pastizal");
-        pokemonBackgrounds.put(5, "Pastizal");
-        pokemonBackgrounds.put(6, "Pastizal");
-        pokemonBackgrounds.put(7, "Pastizal");
+        pokemonBackgrounds.put(0, "No hay fondo");
+        pokemonBackgrounds.put(1, "Pastizal");
+        pokemonBackgrounds.put(2, "Pasto");
+        pokemonBackgrounds.put(3, "Bosque");
+        pokemonBackgrounds.put(4, "Agua");
+        pokemonBackgrounds.put(5, "Tierra");
+        pokemonBackgrounds.put(6, "Roca");
+        pokemonBackgrounds.put(7, "Dojo");
+        pokemonBackgrounds.put(8, "Psiquico");
+        pokemonBackgrounds.put(9, "Cueva");
+        pokemonBackgrounds.put(10, "Playa");
+        pokemonBackgrounds.put(11, "Fantasma");
         
         pokemonWeather.put(0, " ");
         pokemonWeather.put(1, "Soleado");
@@ -650,7 +654,7 @@ public class PokemonGraphics extends AbstractToolAndApplication {
         if (command == 1){                  // Iniciar Batalla
             initializeBattle();
         } else if (command == 2 && battleInitialize == 0){
-            idBackground = (intCommand & 0x00000070) >> 4;
+            idBackground = (intCommand & 0x000000F0) >> 4;
             refreshDisplay();
         } else if (command == 3){           // Setear Clima
             idWeather = (intCommand & 0x00000070) >> 4;
